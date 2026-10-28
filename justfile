@@ -41,3 +41,8 @@ ecr-login:
 # Build the signalling service container image (needs Docker and an ECR login)
 signalling-image tag="claude-share-signalling:latest":
     docker build -f docker/signalling.Dockerfile -t {{tag}} .
+
+# Package the desktop app for this computer's platform, unsigned (installers in packages/app/release)
+package:
+    pnpm --filter @claude-share/app build
+    CSC_IDENTITY_AUTO_DISCOVERY=false pnpm --filter @claude-share/app exec electron-builder --publish never

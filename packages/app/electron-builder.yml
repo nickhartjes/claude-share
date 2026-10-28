@@ -1,0 +1,41 @@
+# Desktop packages for macOS (dmg), Windows (nsis) and Linux (AppImage, deb).
+# "Claude Share" is a working name (design.md, Open Questions).
+appId: com.entrnce.claudeshare
+productName: Claude Share
+directories:
+  output: release/${version}
+files:
+  - out/**
+  - package.json
+# Native modules cannot load from inside app.asar, and node-pty's spawn-helper must be executable.
+asarUnpack:
+  - "**/node_modules/node-pty/**"
+  - "**/node_modules/node-datachannel/**"
+# node-pty and node-datachannel ship N-API prebuilds that load in Electron without rebuilding.
+npmRebuild: false
+afterPack: ./scripts/after-pack.cjs
+fileAssociations:
+  - ext: ccsession
+    name: Claude Share recording
+    role: Viewer
+mac:
+  target:
+    - target: dmg
+      arch: [arm64, x64]
+  category: public.app-category.developer-tools
+  # Signed and notarized by the release workflow (.github/workflows/release.yml). Local and CI
+  # builds set CSC_IDENTITY_AUTO_DISCOVERY=false and stay unsigned.
+  hardenedRuntime: true
+  entitlements: build/entitlements.mac.plist
+  entitlementsInherit: build/entitlements.mac.plist
+win:
+  target:
+    - target: nsis
+      arch: [x64, arm64]
+nsis:
+  oneClick: false
+  perMachine: false
+linux:
+  target: [AppImage, deb]
+  category: Development
+  maintainer: Entrnce

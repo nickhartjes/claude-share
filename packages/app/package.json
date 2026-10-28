@@ -1,12 +1,16 @@
 {
   "name": "@claude-share/app",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "electron-vite dev",
     "build": "electron-vite build",
-    "typecheck": "tsc -p tsconfig.node.json && tsc -p tsconfig.web.json"
+    "typecheck": "tsc -p tsconfig.node.json && tsc -p tsconfig.web.json",
+    "package": "electron-vite build && electron-builder",
+    "package:mac": "electron-vite build && electron-builder --mac",
+    "package:win": "electron-vite build && electron-builder --win",
+    "package:linux": "electron-vite build && electron-builder --linux"
   },
   "dependencies": {
     "@claude-share/daemon": "workspace:*",
@@ -32,9 +36,12 @@
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.1.2",
     "electron": "^45.1.0",
+    "electron-builder": "^26.18.0",
     "electron-vite": "^6.0.0",
     "jsdom": "^30.1.3",
     "vite": "^8.3.5"
   },
-  "main": "out/main/index.js"
+  "main": "out/main/index.js",
+  "description": "Share a Claude Code session with your team",
+  "author": "Entrnce"
 }

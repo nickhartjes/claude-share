@@ -9,4 +9,10 @@ export default tseslint.config(
   {
     languageOptions: { globals: { ...globals.node } },
   },
+  {
+    // CommonJS scripts, such as electron-builder hooks.
+    files: ['**/*.cjs'],
+    languageOptions: { sourceType: 'commonjs' },
+    rules: { '@typescript-eslint/no-require-imports': 'off' },
+  },
 );

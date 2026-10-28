@@ -1,6 +1,12 @@
 packages:
   - packages/*
 allowBuilds:
+  electron-winstaller: false
   esbuild: true
   node-datachannel: true
   node-pty: true
+# node-datachannel ships its native binary as per-platform optional packages. Install both macOS
+# architectures so one Mac can package the arm64 and x64 apps.
+supportedArchitectures:
+  os: [current]
+  cpu: [current, arm64, x64]

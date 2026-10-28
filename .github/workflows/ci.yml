@@ -30,3 +30,32 @@ jobs:
       # CI pulls base images from Docker Hub; local builds use the ECR pull-through cache.
       - run: docker build -f docker/linux.Dockerfile --build-arg REGISTRY=docker.io --target check -t claude-share-linux-check .
       - run: docker run --rm claude-share-linux-check
+
+  package:
+    name: Package (${{ matrix.os }})
+    needs: [check, linux]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: macos-latest, target: --mac }
+          - { os: windows-latest, target: --win }
+          - { os: ubuntu-latest, target: --linux }
+    runs-on: ${{ matrix.os }}
+    env:
+      # CI packages are unsigned; the release workflow signs.
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+    steps:
+      - uses: actions/checkout@v5
+      - uses: jdx/mise-action@v3
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @claude-share/app build
+      - run: pnpm --filter @claude-share/app exec electron-builder ${{ matrix.target }} --publish never
+      - uses: actions/upload-artifact@v4
+        with:
+          name: claude-share-${{ runner.os }}
+          path: |
+            packages/app/release/*/*.dmg
+            packages/app/release/*/*.exe
+            packages/app/release/*/*.AppImage
+            packages/app/release/*/*.deb
