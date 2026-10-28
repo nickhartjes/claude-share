@@ -1,0 +1,61 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: claude-share-signalling
+  labels: { app: claude-share-signalling }
+spec:
+  # Rooms live in memory: run exactly one replica.
+  replicas: 1
+  strategy: { type: Recreate }
+  selector:
+    matchLabels: { app: claude-share-signalling }
+  template:
+    metadata:
+      labels: { app: claude-share-signalling }
+    spec:
+      containers:
+        - name: signalling
+          image: claude-share-signalling:latest
+          ports:
+            - containerPort: 8080
+              name: http
+          env:
+            - name: PORT
+              value: "8080"
+            # One proxy (the ingress) sits in front of the service.
+            - name: TRUSTED_PROXIES
+              value: "1"
+            - name: TURN_TTL_SECONDS
+              value: "3600"
+            - name: TURN_URLS
+              valueFrom: { configMapKeyRef: { name: claude-share-network, key: TURN_URLS } }
+            - name: STUN_URLS
+              valueFrom: { configMapKeyRef: { name: claude-share-network, key: STUN_URLS } }
+            - name: TURN_SECRET
+              valueFrom: { secretKeyRef: { name: claude-share-turn, key: TURN_SECRET } }
+          readinessProbe:
+            httpGet: { path: /healthz, port: http }
+          livenessProbe:
+            httpGet: { path: /healthz, port: http }
+            periodSeconds: 20
+          resources:
+            requests: { cpu: 50m, memory: 64Mi }
+            limits: { memory: 256Mi }
+          securityContext:
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: [ALL] }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: claude-share-signalling
+spec:
+  selector: { app: claude-share-signalling }
+  ports:
+    - port: 8080
+      targetPort: http
+      name: http
+# Expose /signal (WebSocket) and /healthz through the cluster's ingress with TLS, on the external
+# port agreed with the cluster operators (docs/spikes/k8s-turn.md).

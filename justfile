@@ -37,3 +37,7 @@ linux-check:
 # Log Docker in to the test environment's ECR (pull-through cache for Docker Hub images)
 ecr-login:
     aws ecr get-login-password --profile tst --region eu-central-1 | docker login --username AWS --password-stdin 654261343536.dkr.ecr.eu-central-1.amazonaws.com
+
+# Build the signalling service container image (needs Docker and an ECR login)
+signalling-image tag="claude-share-signalling:latest":
+    docker build -f docker/signalling.Dockerfile -t {{tag}} .

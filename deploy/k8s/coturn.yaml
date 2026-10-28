@@ -1,0 +1,86 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: claude-share-turn
+  labels: { app: claude-share-turn }
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: claude-share-turn }
+  template:
+    metadata:
+      labels: { app: claude-share-turn }
+    spec:
+      containers:
+        - name: coturn
+          image: 654261343536.dkr.ecr.eu-central-1.amazonaws.com/tst-docker-hub/coturn/coturn:4.6.3
+          args:
+            - --log-file=stdout
+            - --listening-port=3478
+            # Relay ports; must match the ports exposed by the Service below.
+            - --min-port=49160
+            - --max-port=49179
+            - --external-ip=$(TURN_EXTERNAL_IP)
+            - --realm=claude-share
+            # Credentials come from the signalling service (TURN REST API scheme).
+            - --use-auth-secret
+            - --static-auth-secret=$(TURN_SECRET)
+            - --fingerprint
+            - --no-cli
+            - --no-tlsv1
+            - --no-tlsv1_1
+            - --no-multicast-peers
+            # Never relay into private networks: otherwise TURN credentials would give access to
+            # services inside the cluster.
+            - --no-loopback-peers
+            - --denied-peer-ip=10.0.0.0-10.255.255.255
+            - --denied-peer-ip=172.16.0.0-172.31.255.255
+            - --denied-peer-ip=192.168.0.0-192.168.255.255
+            - --denied-peer-ip=169.254.0.0-169.254.255.255
+            - --denied-peer-ip=100.64.0.0-100.127.255.255
+          env:
+            - name: TURN_EXTERNAL_IP
+              valueFrom: { configMapKeyRef: { name: claude-share-network, key: TURN_EXTERNAL_IP } }
+            - name: TURN_SECRET
+              valueFrom: { secretKeyRef: { name: claude-share-turn, key: TURN_SECRET } }
+          ports:
+            - { containerPort: 3478, protocol: UDP, name: turn-udp }
+            - { containerPort: 3478, protocol: TCP, name: turn-tcp }
+          resources:
+            requests: { cpu: 100m, memory: 64Mi }
+            limits: { memory: 256Mi }
+---
+# TURN needs UDP and a range of relay ports reachable from outside. Kubernetes Services cannot
+# declare port ranges, so every relay port is listed. Adjust the type and external ports to what the
+# cluster operators agreed (docs/spikes/k8s-turn.md).
+apiVersion: v1
+kind: Service
+metadata:
+  name: claude-share-turn
+spec:
+  type: LoadBalancer
+  externalTrafficPolicy: Local
+  selector: { app: claude-share-turn }
+  ports:
+    - { name: turn-udp, port: 3478, targetPort: 3478, protocol: UDP }
+    - { name: turn-tcp, port: 3478, targetPort: 3478, protocol: TCP }
+    - { name: relay-49160, port: 49160, targetPort: 49160, protocol: UDP }
+    - { name: relay-49161, port: 49161, targetPort: 49161, protocol: UDP }
+    - { name: relay-49162, port: 49162, targetPort: 49162, protocol: UDP }
+    - { name: relay-49163, port: 49163, targetPort: 49163, protocol: UDP }
+    - { name: relay-49164, port: 49164, targetPort: 49164, protocol: UDP }
+    - { name: relay-49165, port: 49165, targetPort: 49165, protocol: UDP }
+    - { name: relay-49166, port: 49166, targetPort: 49166, protocol: UDP }
+    - { name: relay-49167, port: 49167, targetPort: 49167, protocol: UDP }
+    - { name: relay-49168, port: 49168, targetPort: 49168, protocol: UDP }
+    - { name: relay-49169, port: 49169, targetPort: 49169, protocol: UDP }
+    - { name: relay-49170, port: 49170, targetPort: 49170, protocol: UDP }
+    - { name: relay-49171, port: 49171, targetPort: 49171, protocol: UDP }
+    - { name: relay-49172, port: 49172, targetPort: 49172, protocol: UDP }
+    - { name: relay-49173, port: 49173, targetPort: 49173, protocol: UDP }
+    - { name: relay-49174, port: 49174, targetPort: 49174, protocol: UDP }
+    - { name: relay-49175, port: 49175, targetPort: 49175, protocol: UDP }
+    - { name: relay-49176, port: 49176, targetPort: 49176, protocol: UDP }
+    - { name: relay-49177, port: 49177, targetPort: 49177, protocol: UDP }
+    - { name: relay-49178, port: 49178, targetPort: 49178, protocol: UDP }
+    - { name: relay-49179, port: 49179, targetPort: 49179, protocol: UDP }

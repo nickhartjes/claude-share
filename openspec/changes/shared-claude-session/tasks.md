@@ -58,7 +58,7 @@
 - [x] 8.1 Implement the `signalling` WebSocket service with in-memory rooms keyed by room id, SDP/ICE relay, and per-IP and per-room rate limiting; verify integration tests for joining, relaying and rate limiting
 - [ ] 8.2 Issue short-lived TURN credentials using the TURN REST API shared secret; verify credentials are accepted by a local `coturn` and rejected after expiry
 - [ ] 8.3 Add a container image and Kubernetes manifests for `signalling` and `coturn` (using the endpoints from task 1.4), with a health endpoint; verify deployment to a test namespace and that the health check passes
-- [ ] 8.4 Document deployment and configuration in `packages/signalling/README.md`
+- [x] 8.4 Document deployment and configuration in `packages/signalling/README.md`
 
 ## 9. Sharing and connections
 

@@ -4,13 +4,16 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "build": "esbuild src/main.ts --bundle --platform=node --target=node24 --format=esm --outfile=dist/main.js --external:bufferutil --external:utf-8-validate --banner:js=\"import { createRequire } from 'node:module'; const require = createRequire(import.meta.url);\"",
+    "start": "node dist/main.js"
   },
   "dependencies": {
     "@claude-share/protocol": "workspace:*",
     "ws": "^8.22.0"
   },
   "devDependencies": {
-    "@types/ws": "^8.18.2"
+    "@types/ws": "^8.18.2",
+    "esbuild": "^0.28.2"
   }
 }
