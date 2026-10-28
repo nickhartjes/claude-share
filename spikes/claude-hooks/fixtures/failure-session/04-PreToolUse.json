@@ -1,0 +1,16 @@
+{
+  "session_id": "85aae5cf-0fe9-47e1-b5c7-2058c7409a5e",
+  "transcript_path": "/home/user/.claude/projects/-workspace-project/85aae5cf-0fe9-47e1-b5c7-2058c7409a5e.jsonl",
+  "cwd": "/workspace/project",
+  "prompt_id": "d8011d63-d412-4719-a2de-f2df7cee0984",
+  "permission_mode": "default",
+  "effort": {
+    "level": "medium"
+  },
+  "hook_event_name": "PreToolUse",
+  "tool_name": "Read",
+  "tool_input": {
+    "file_path": "/workspace/project/does-not-exist.txt"
+  },
+  "tool_use_id": "toolu_01Wi53QpwW3SuDJbVQMLmoYM"
+}

@@ -1,0 +1,9 @@
+{
+  "session_id": "85aae5cf-0fe9-47e1-b5c7-2058c7409a5e",
+  "transcript_path": "/home/user/.claude/projects/-workspace-project/85aae5cf-0fe9-47e1-b5c7-2058c7409a5e.jsonl",
+  "cwd": "/workspace/project",
+  "prompt_id": "d8011d63-d412-4719-a2de-f2df7cee0984",
+  "permission_mode": "default",
+  "hook_event_name": "UserPromptSubmit",
+  "prompt": "Do exactly these steps in order: 1) Say \"Starting.\" 2) Read the file does-not-exist.txt. 3) Run the shell command: printenv PROBE_PROJECT_SETTING 4) Reply with DONE and the printenv output."
+}

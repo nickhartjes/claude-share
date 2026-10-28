@@ -1,0 +1,9 @@
+{
+  "session_id": "b657bbf3-d690-4fca-a308-b73a4fc66eaf",
+  "transcript_path": "/home/user/.claude/projects/-workspace-project/b657bbf3-d690-4fca-a308-b73a4fc66eaf.jsonl",
+  "cwd": "/workspace/project",
+  "prompt_id": "f21b698c-764e-4233-b74a-cdf23ed90bdc",
+  "permission_mode": "default",
+  "hook_event_name": "UserPromptSubmit",
+  "prompt": "Do exactly these steps: 1) Write a file notes.txt with the single line \"one\". 2) Edit notes.txt replacing \"one\" with \"two\". 3) Run the shell command: echo $PROBE_PROJECT_SETTING. Then reply with the word DONE and the echo output."
+}

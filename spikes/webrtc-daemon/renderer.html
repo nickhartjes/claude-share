@@ -1,0 +1,64 @@
+<!doctype html>
+<meta charset="utf-8">
+<script>
+  // Viewer side: answers the daemon's offer, receives the stream, reports a checksum and the ICE path.
+  const q = new URLSearchParams(location.search);
+  const ws = new WebSocket('ws://127.0.0.1:8787');
+  const pc = new RTCPeerConnection({
+    iceServers: [{ urls: q.get('turn'), username: q.get('user'), credential: q.get('pass') }],
+    iceTransportPolicy: q.get('mode'),
+  });
+  const send = (msg) => ws.send(JSON.stringify(msg));
+  pc.onconnectionstatechange = () => console.log('renderer pc state:', pc.connectionState);
+  ws.onerror = () => console.log('renderer signalling error');
+  pc.onicecandidate = (e) => { if (e.candidate) send({ candidate: e.candidate.candidate, mid: e.candidate.sdpMid }); };
+
+  let expectBytes = 0;
+  const parts = [];
+  let received = 0;
+  pc.ondatachannel = ({ channel }) => {
+    channel.binaryType = 'arraybuffer';
+    if (channel.label === 'control') {
+      channel.onmessage = (e) => {
+        const msg = JSON.parse(e.data);
+        expectBytes = msg.expectBytes;
+        channel.send(JSON.stringify({ reply: 'from renderer' }));
+      };
+    } else {
+      channel.onmessage = async (e) => {
+        parts.push(new Uint8Array(e.data));
+        received += e.data.byteLength;
+        if (expectBytes && received >= expectBytes) finish();
+      };
+    }
+  };
+
+  async function finish() {
+    const all = new Uint8Array(received);
+    let off = 0;
+    for (const p of parts) { all.set(p, off); off += p.length; }
+    const digest = await crypto.subtle.digest('SHA-256', all);
+    const sha = [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, '0')).join('');
+    const stats = await pc.getStats();
+    let selectedPair = {};
+    stats.forEach((s) => {
+      if (s.type === 'transport' && s.selectedCandidatePairId) {
+        const pair = stats.get(s.selectedCandidatePairId);
+        selectedPair = { local: stats.get(pair.localCandidateId).candidateType, remote: stats.get(pair.remoteCandidateId).candidateType };
+      }
+    });
+    send({ result: { bytes: received, sha, selectedPair } });
+  }
+
+  ws.onmessage = async (e) => {
+    const msg = JSON.parse(e.data);
+    if (msg.sdp) {
+      await pc.setRemoteDescription({ type: msg.type, sdp: msg.sdp });
+      const answer = await pc.createAnswer();
+      await pc.setLocalDescription(answer);
+      send({ type: answer.type, sdp: answer.sdp });
+    } else if (msg.candidate) {
+      await pc.addIceCandidate({ candidate: msg.candidate, sdpMid: msg.mid });
+    }
+  };
+</script>

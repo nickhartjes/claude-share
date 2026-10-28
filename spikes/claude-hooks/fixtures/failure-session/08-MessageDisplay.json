@@ -1,0 +1,12 @@
+{
+  "session_id": "85aae5cf-0fe9-47e1-b5c7-2058c7409a5e",
+  "transcript_path": "/home/user/.claude/projects/-workspace-project/85aae5cf-0fe9-47e1-b5c7-2058c7409a5e.jsonl",
+  "cwd": "/workspace/project",
+  "prompt_id": "d8011d63-d412-4719-a2de-f2df7cee0984",
+  "hook_event_name": "MessageDisplay",
+  "turn_id": "baf788e8-c26e-4b1a-bf9a-f6fecd3e29f3",
+  "message_id": "4e0ed0dc-6d47-4a1b-acdd-fe0c35821fbe",
+  "index": 0,
+  "final": true,
+  "delta": "DONE. Two things happened:\n\n- **File read:** `does-not-exist.txt` isn't in the project directory, so the read failed.\n- **`printenv PROBE_PROJECT_SETTING`:** printed `Project-settings-applied`. The project settings were loaded."
+}

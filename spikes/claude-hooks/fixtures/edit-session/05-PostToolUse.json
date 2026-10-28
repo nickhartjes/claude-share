@@ -1,0 +1,40 @@
+{
+  "session_id": "b657bbf3-d690-4fca-a308-b73a4fc66eaf",
+  "transcript_path": "/home/user/.claude/projects/-workspace-project/b657bbf3-d690-4fca-a308-b73a4fc66eaf.jsonl",
+  "cwd": "/workspace/project",
+  "prompt_id": "f21b698c-764e-4233-b74a-cdf23ed90bdc",
+  "permission_mode": "default",
+  "effort": {
+    "level": "medium"
+  },
+  "hook_event_name": "PostToolUse",
+  "tool_name": "Edit",
+  "tool_input": {
+    "file_path": "/workspace/project/notes.txt",
+    "old_string": "one",
+    "new_string": "two",
+    "replace_all": false
+  },
+  "tool_response": {
+    "filePath": "/workspace/project/notes.txt",
+    "oldString": "one",
+    "newString": "two",
+    "originalFile": "one\n",
+    "structuredPatch": [
+      {
+        "oldStart": 1,
+        "oldLines": 1,
+        "newStart": 1,
+        "newLines": 1,
+        "lines": [
+          "-one",
+          "+two"
+        ]
+      }
+    ],
+    "userModified": false,
+    "replaceAll": false
+  },
+  "tool_use_id": "toolu_01MSPzqSDZYLQSAy38s46mHN",
+  "duration_ms": 2
+}

@@ -1,0 +1,15 @@
+{
+  "session_id": "b657bbf3-d690-4fca-a308-b73a4fc66eaf",
+  "transcript_path": "/home/user/.claude/projects/-workspace-project/b657bbf3-d690-4fca-a308-b73a4fc66eaf.jsonl",
+  "cwd": "/workspace/project",
+  "prompt_id": "f21b698c-764e-4233-b74a-cdf23ed90bdc",
+  "permission_mode": "default",
+  "effort": {
+    "level": "medium"
+  },
+  "hook_event_name": "Stop",
+  "stop_hook_active": false,
+  "last_assistant_message": "I wrote `notes.txt` with \"one\" and then edited it to \"two\". The third step didn't run. The harness blocked `echo $PROBE_PROJECT_SETTING` with: \"A variable in this command can't be checked before it runs\". So there's no echo output.\n\nThe steps were exact, so I didn't try a workaround. `printenv PROBE_PROJECT_SETTING` would probably read the value without that check. Tell me if you want me to run it.\n\nDONE (no echo output)",
+  "background_tasks": [],
+  "session_crons": []
+}

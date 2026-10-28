@@ -1,0 +1,17 @@
+{
+  "session_id": "b657bbf3-d690-4fca-a308-b73a4fc66eaf",
+  "transcript_path": "/home/user/.claude/projects/-workspace-project/b657bbf3-d690-4fca-a308-b73a4fc66eaf.jsonl",
+  "cwd": "/workspace/project",
+  "prompt_id": "f21b698c-764e-4233-b74a-cdf23ed90bdc",
+  "permission_mode": "default",
+  "effort": {
+    "level": "medium"
+  },
+  "hook_event_name": "PreToolUse",
+  "tool_name": "Bash",
+  "tool_input": {
+    "command": "echo $PROBE_PROJECT_SETTING",
+    "description": "Print the PROBE_PROJECT_SETTING env var"
+  },
+  "tool_use_id": "toolu_01FdsNfmnKk6csF9TtGSVvaF"
+}
