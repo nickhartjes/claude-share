@@ -1,4 +1,4 @@
-import { encodeFrame, type Signer } from '@claude-share/protocol';
+import { encodeFrame, type Signer, type TimelineEvent } from '@claude-share/protocol';
 import type { Snapshot } from './terminal-mirror.ts';
 
 /** Where the hub gets terminal output from; implemented by HostSession. */
@@ -40,6 +40,13 @@ interface Feed {
   /** `syncing`: a snapshot is being prepared; `live`: receiving output; `lagging`: stopped until drained. */
   state: 'syncing' | 'live' | 'lagging';
   lastSent: number;
+  lastEventSent: number;
+}
+
+/** Where a reconnecting viewer left off. */
+export interface ResumeFrom {
+  lastOutputSeq?: number | undefined;
+  lastEventSeq?: number | undefined;
 }
 
 interface EncodedFrame {
@@ -60,6 +67,9 @@ export class StreamHub {
   private readonly options: Required<StreamHubOptions>;
   private readonly feeds = new Set<Feed>();
   private readonly recent: EncodedFrame[] = [];
+  /** Every timeline event of the session, encoded; a late joiner gets all of them. */
+  private readonly events: EncodedFrame[] = [];
+  private nextEventSeq = 0;
   private recentSize = 0;
   private queue: Promise<void> = Promise.resolve();
   private readonly unsubscribe: () => void;
@@ -89,20 +99,31 @@ export class StreamHub {
   }
 
   /**
-   * Starts streaming to a viewer. A reconnecting viewer passes the last output sequence number it
-   * has; it gets the missing frames if they are still in memory, and a fresh snapshot otherwise.
+   * Starts streaming to a viewer. A reconnecting viewer passes where it left off; it gets the
+   * missing output frames if they are still in memory, and a fresh snapshot otherwise, followed by
+   * the timeline events it does not have yet.
    */
-  attach(transport: StreamTransport, lastOutputSeq?: number): Promise<AttachResult> {
+  attach(transport: StreamTransport, resume: ResumeFrom = {}): Promise<AttachResult> {
     if (this.ended) return Promise.resolve({ ok: false, reason: 'session-ended' });
-    const feed: Feed = { transport, state: 'syncing', lastSent: -1 };
+    const feed: Feed = { transport, state: 'syncing', lastSent: -1, lastEventSent: resume.lastEventSeq ?? -1 };
     return this.enqueue(async () => {
       this.feeds.add(feed);
-      await this.catchUp(feed, lastOutputSeq);
+      await this.catchUp(feed, resume.lastOutputSeq);
       return {
         ok: true as const,
         resend: (fromSeq: number) => void this.enqueue(() => this.catchUp(feed, fromSeq - 1)),
         detach: () => this.feeds.delete(feed),
       };
+    });
+  }
+
+  /** Sends a timeline event to every viewer and keeps it for viewers who join later. */
+  publishEvent(event: TimelineEvent): void {
+    const seq = this.nextEventSeq++;
+    void this.enqueue(async () => {
+      const frame = { seq, bytes: await encodeFrame({ kind: 'event', seq, event }, this.signer) };
+      this.events.push(frame);
+      for (const feed of this.feeds) this.deliverEvent(feed, frame);
     });
   }
 
@@ -117,6 +138,22 @@ export class StreamHub {
     for (const frame of missing) feed.transport.send(frame.bytes);
     feed.lastSent = missing.at(-1)?.seq ?? lastSeq!;
     feed.state = 'live';
+    this.sendMissingEvents(feed);
+  }
+
+  private deliverEvent(feed: Feed, frame: EncodedFrame): void {
+    if (feed.state !== 'live' || frame.seq <= feed.lastEventSent) return;
+    if (feed.transport.bufferedAmount() > this.options.highWaterBytes) {
+      feed.state = 'lagging';
+      return;
+    }
+    feed.transport.send(frame.bytes);
+    feed.lastEventSent = frame.seq;
+  }
+
+  private sendMissingEvents(feed: Feed): void {
+    for (const frame of this.events.slice(feed.lastEventSent + 1)) feed.transport.send(frame.bytes);
+    feed.lastEventSent = this.events.length - 1;
   }
 
   get viewers(): number {
@@ -165,6 +202,7 @@ export class StreamHub {
     // frame is encoded. Later frames reach this feed through deliver(), which skips seq <= lastSent.
     feed.lastSent = snapshot.seq;
     feed.state = 'live';
+    this.sendMissingEvents(feed);
   }
 
   private resyncDrained(): void {

@@ -109,5 +109,6 @@ A viewer drops any output frame whose `seq` is not exactly one higher than the l
 | `file-change` | A file Claude created or edited, with diff hunks |
 | `file-read` | A file Claude read |
 | `timeline-unavailable` | Structured events cannot be captured; the terminal mirror still works |
+| `timeline-available` | Events arrive again after `timeline-unavailable` was caused by missing events |
 
 Every event has `outputSeq` and `at` (milliseconds since the epoch); events for a prompt share `promptId`.

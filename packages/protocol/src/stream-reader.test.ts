@@ -74,15 +74,17 @@ describe('StreamReader', () => {
     expect(resends).toEqual([1]);
   });
 
-  it('passes timeline events on', async () => {
+  it('passes timeline events on once each and remembers the last one', async () => {
     const events: number[] = [];
     const reader = new StreamReader(await createVerifier(keys.publicKey), { load() {}, write() {} }, {
       requestResend() {},
       onEvent: (seq) => events.push(seq),
     });
-    await reader.receive(
-      await encodeFrame({ kind: 'event', seq: 7, event: { kind: 'session-started', outputSeq: 0, at: 1 } }, keys.signer),
-    );
-    expect(events).toEqual([7]);
+    const event = (seq: number) => encodeFrame({ kind: 'event', seq, event: { kind: 'session-started', outputSeq: 0, at: 1 } }, keys.signer);
+    await reader.receive(await event(7));
+    await reader.receive(await event(7));
+    await reader.receive(await event(8));
+    expect(events).toEqual([7, 8]);
+    expect(reader.lastEventSeq).toBe(8);
   });
 });

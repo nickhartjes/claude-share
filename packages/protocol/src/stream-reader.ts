@@ -26,6 +26,7 @@ export class StreamReader {
   private readonly options: StreamReaderOptions;
   private readonly snapshotParts = new Map<number, Array<Uint8Array | undefined>>();
   private lastSeq: number | undefined;
+  private lastEvent = -1;
   private resendRequested: number | undefined;
   private queue: Promise<void> = Promise.resolve();
 
@@ -38,6 +39,11 @@ export class StreamReader {
   /** Last output sequence number applied to the terminal; sent as `lastOutputSeq` when reconnecting. */
   get lastOutputSeq(): number | undefined {
     return this.lastSeq;
+  }
+
+  /** Last timeline event sequence number received; sent as `lastEventSeq` when reconnecting. */
+  get lastEventSeq(): number | undefined {
+    return this.lastEvent === -1 ? undefined : this.lastEvent;
   }
 
   /** Processes one binary message from the `stream` channel. Messages are handled in arrival order. */
@@ -83,6 +89,8 @@ export class StreamReader {
         return;
       }
       case 'event':
+        if (frame.seq <= this.lastEvent) return;
+        this.lastEvent = frame.seq;
         this.options.onEvent?.(frame.seq, frame.event);
         return;
     }

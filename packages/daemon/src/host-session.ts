@@ -26,6 +26,7 @@ export class HostSession {
   private readonly mirror: TerminalMirror;
   private readonly hosts = new Set<AttachedHost>();
   private readonly outputListeners = new Set<OutputListener>();
+  private readonly inputListeners = new Set<(data: string) => void>();
   private nextSeq = 0;
   private cols: number;
   private rows: number;
@@ -60,6 +61,17 @@ export class HostSession {
   onOutput(listener: OutputListener): () => void {
     this.outputListeners.add(listener);
     return () => this.outputListeners.delete(listener);
+  }
+
+  /** Calls `listener` with input the host typed into the terminal. */
+  onHostInput(listener: (data: string) => void): () => void {
+    this.inputListeners.add(listener);
+    return () => this.inputListeners.delete(listener);
+  }
+
+  /** Last output sequence number produced, or -1 before any output. */
+  get lastOutputSeq(): number {
+    return this.nextSeq - 1;
   }
 
   /** Snapshot of the terminal; output after `seq` follows through `onOutput`. */
@@ -97,7 +109,9 @@ export class HostSession {
   }
 
   private writeInput(data: string): void {
-    if (this.exitCode === undefined) this.pty.write(data);
+    if (this.exitCode !== undefined) return;
+    this.pty.write(data);
+    for (const listener of this.inputListeners) listener(data);
   }
 
   private resize(cols: unknown, rows: unknown): void {

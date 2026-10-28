@@ -116,7 +116,7 @@ describe('StreamHub', () => {
       for (let i = 0; i < 10; i++) pty.emit(`during outage ${i}\r\n`);
       await settle();
       const snapshotsBefore = viewer.snapshots;
-      await hub!.attach(viewer.transport, viewer.reader.lastOutputSeq);
+      await hub!.attach(viewer.transport, { lastOutputSeq: viewer.reader.lastOutputSeq });
       await settle(viewer);
 
       expect(viewer.snapshots).toBe(snapshotsBefore);
@@ -135,7 +135,7 @@ describe('StreamHub', () => {
       for (let i = 0; i < 200; i++) pty.emit(`during a long outage ${i}\r\n`);
       await settle();
       const snapshotsBefore = viewer.snapshots;
-      await hub!.attach(viewer.transport, viewer.reader.lastOutputSeq);
+      await hub!.attach(viewer.transport, { lastOutputSeq: viewer.reader.lastOutputSeq });
       await settle(viewer);
 
       expect(viewer.snapshots).toBe(snapshotsBefore + 1);
@@ -147,7 +147,7 @@ describe('StreamHub', () => {
       setup();
       hub!.close();
       const viewer = await createViewer(keys.publicKey);
-      expect(await hub!.attach(viewer.transport, 5)).toEqual({ ok: false, reason: 'session-ended' });
+      expect(await hub!.attach(viewer.transport, { lastOutputSeq: 5 })).toEqual({ ok: false, reason: 'session-ended' });
     });
 
     it('resends output a viewer asks for after it saw a gap', async () => {
@@ -170,6 +170,57 @@ describe('StreamHub', () => {
       await settle(viewer);
       expect(viewer.reader.lastOutputSeq).toBe(5);
       expect(viewer.display.serialize()).toBe((await session!.snapshot()).data);
+    });
+  });
+
+  describe('timeline events', () => {
+    const prompt = (n: number) => ({ kind: 'prompt' as const, outputSeq: n, at: n, promptId: `p${n}`, text: `prompt ${n}` });
+
+    it('gives a late joiner every event from the start of the session, in order', async () => {
+      const pty = setup();
+      for (let n = 0; n < 5; n++) {
+        pty.emit(`output ${n}\r\n`);
+        hub!.publishEvent(prompt(n));
+      }
+      const viewer = await createViewer(keys.publicKey);
+      await hub!.attach(viewer.transport);
+      hub!.publishEvent(prompt(5));
+      await settle(viewer);
+      expect(viewer.events.map((e) => e.seq)).toEqual([0, 1, 2, 3, 4, 5]);
+      expect(viewer.events[2]!.event).toEqual(prompt(2));
+    });
+
+    it('sends a reconnecting viewer only the events after the last one it has', async () => {
+      setup();
+      const viewer = await createViewer(keys.publicKey);
+      const first = await hub!.attach(viewer.transport);
+      hub!.publishEvent(prompt(0));
+      hub!.publishEvent(prompt(1));
+      await settle(viewer);
+      if (first.ok) first.detach();
+
+      hub!.publishEvent(prompt(2));
+      hub!.publishEvent(prompt(3));
+      await settle();
+      await hub!.attach(viewer.transport, { lastOutputSeq: viewer.reader.lastOutputSeq, lastEventSeq: 1 });
+      await settle(viewer);
+      expect(viewer.events.map((e) => e.seq)).toEqual([0, 1, 2, 3]);
+    });
+
+    it('catches a backed-up viewer up on the events it missed', async () => {
+      setup({ highWaterBytes: 1000, lowWaterBytes: 100, drainCheckMs: 10 });
+      const viewer = await createViewer(keys.publicKey);
+      await hub!.attach(viewer.transport);
+      viewer.transport.buffered = 5000;
+      hub!.publishEvent(prompt(0));
+      hub!.publishEvent(prompt(1));
+      await settle(viewer);
+      expect(viewer.events).toEqual([]);
+
+      viewer.transport.buffered = 0;
+      await sleep(50);
+      await settle(viewer);
+      expect(viewer.events.map((e) => e.seq)).toEqual([0, 1]);
     });
   });
 

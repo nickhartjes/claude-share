@@ -41,10 +41,11 @@
 
 - [x] 6.1 Serve the hook endpoint in the daemon on `127.0.0.1` (random port) that accepts POSTed hook payloads only with the session's bearer token and answers `204` at once; verify tests for a valid token, a missing or wrong token, and malformed bodies
 - [x] 6.2 Generate the session's hook settings file with HTTP hooks for the events listed in design decision 6 (token through `CLAUDE_SHARE_HOOK_TOKEN`, `allowedEnvVars`) and pass it with `--settings`, setting the variable on the Claude Code process; verify a test that posts every fixture in `spikes/claude-hooks/fixtures/` as Claude Code would and every event type reaches the daemon, plus an opt-in test against a real `claude -p` run
-- [ ] 6.3 Turn hook events into timeline entries grouped by `prompt_id` (prompt, live and final response text, tool calls with success, failure or "not run" status), each stamped with the current output sequence number; verify unit tests using the recorded fixtures (`session-timeline`: Capture prompts, Capture responses, Capture tool calls)
-- [ ] 6.4 Build file diffs from `PostToolUse.tool_response` (`structuredPatch` and `originalFile` for edits, `content` for new files) and maintain the touched files list; verify unit tests for an edit, a new file and a read-only touch (`session-timeline`: File change diffs, Touched files list)
-- [ ] 6.5 Implement degraded mode when hook events stop arriving or cannot be parsed; verify a test where the hook adapter rejects a payload and the terminal stream continues while the timeline reports itself unavailable (`session-timeline`: Degraded mode)
-- [ ] 6.6 Document the hook integration and supported Claude Code versions in `packages/daemon/docs/timeline.md`
+- [x] 6.3 Turn hook events into timeline entries grouped by `prompt_id` (prompt, live and final response text, tool calls with success, failure or "not run" status), each stamped with the current output sequence number; verify unit tests using the recorded fixtures (`session-timeline`: Capture prompts, Capture responses, Capture tool calls)
+- [x] 6.4 Build file diffs from `PostToolUse.tool_response` (`structuredPatch` and `originalFile` for edits, `content` for new files) and maintain the touched files list; verify unit tests for an edit, a new file and a read-only touch (`session-timeline`: File change diffs, Touched files list)
+- [x] 6.5 Implement degraded mode when hook events stop arriving or cannot be parsed; verify a test where the hook adapter rejects a payload and the terminal stream continues while the timeline reports itself unavailable (`session-timeline`: Degraded mode)
+- [x] 6.6 Stream timeline events to viewers as signed event frames with their own sequence numbers: late joiners get every event from the start, reconnecting viewers the events after `lastEventSeq`; verify tests for both (`session-timeline`: Late joiner sees full timeline)
+- [x] 6.7 Document the hook integration and supported Claude Code versions in `packages/daemon/docs/timeline.md`
 
 ## 7. Session recording
 

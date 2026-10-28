@@ -2,12 +2,15 @@
 import { mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { parseArgs } from 'node:util';
+import { createSessionKeys } from '@claude-share/protocol';
 import { checkPrerequisites, PrerequisiteError, startClaude } from './claude-process.ts';
 import { startHookEndpoint } from './hook-endpoint.ts';
 import { HOOK_TOKEN_ENV, writeHookSettings } from './hook-settings.ts';
 import { HostSession } from './host-session.ts';
 import type { StartupLine } from './launcher.ts';
 import { OutputLog } from './output-log.ts';
+import { StreamHub } from './stream-hub.ts';
+import { TimelineService } from './timeline-service.ts';
 import { createToken, localEndpoint, startLocalServer } from './local-ipc.ts';
 
 const { values } = parseArgs({
@@ -39,8 +42,10 @@ try {
 
 await mkdir(sessionDir, { recursive: true });
 const outputLog = await OutputLog.create(join(sessionDir, 'output.log'));
-const hookEvents: unknown[] = [];
-const hooks = await startHookEndpoint((payload) => hookEvents.push(payload));
+const keys = await createSessionKeys();
+// `timeline` is declared below, in the same synchronous block that starts Claude Code, so it
+// exists before any hook request can be handled.
+const hooks = await startHookEndpoint((payload) => timeline.handleHook(payload));
 const hookSettingsFile = join(sessionDir, 'hook-settings.json');
 await writeHookSettings(hookSettingsFile, hooks.url);
 // No await between starting Claude Code and subscribing: output must not arrive unobserved.
@@ -49,6 +54,12 @@ const session = new HostSession(
   size,
 );
 session.onOutput((seq, data) => outputLog.append(seq, data));
+const hub = new StreamHub(session, keys.signer);
+const timeline = new TimelineService({ cwd, outputSeq: () => session.lastOutputSeq, emit: (event) => hub.publishEvent(event) });
+timeline.sessionStarted();
+session.onHostInput((data) => {
+  if (data.includes('\r')) timeline.hostSubmitted();
+});
 
 const tokenFile = join(sessionDir, 'token');
 const token = await createToken(tokenFile);
@@ -62,6 +73,8 @@ const server = await startLocalServer(endpoint, token, (connection) => {
 
 async function shutdown(): Promise<void> {
   session.close();
+  hub.close();
+  timeline.dispose();
   await outputLog.close();
   await hooks.close();
   // Give the session-ended message a moment to reach the windows before disconnecting them.

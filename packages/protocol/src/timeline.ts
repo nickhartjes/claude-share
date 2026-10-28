@@ -59,5 +59,6 @@ export const TimelineEvent = z.discriminatedUnion('kind', [
   }),
   z.object({ kind: z.literal('file-read'), ...base, promptId: z.string(), toolUseId: z.string(), path: z.string() }),
   z.object({ kind: z.literal('timeline-unavailable'), ...base, reason: z.string() }),
+  z.object({ kind: z.literal('timeline-available'), ...base }),
 ]);
 export type TimelineEvent = z.infer<typeof TimelineEvent>;

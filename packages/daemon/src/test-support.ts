@@ -1,5 +1,5 @@
 // Test helpers shared by daemon tests. Not part of the daemon itself.
-import { createVerifier, StreamReader } from '@claude-share/protocol';
+import { createVerifier, StreamReader, type TimelineEvent } from '@claude-share/protocol';
 import serializeAddon from '@xterm/addon-serialize';
 import xtermHeadless from '@xterm/headless';
 import type { PtyLike } from './host-session.ts';
@@ -60,6 +60,7 @@ export class FakeTransport implements StreamTransport {
 export async function createViewer(publicKey: string, size = { cols: 80, rows: 24 }) {
   const display = headlessTerminal(size.cols, size.rows);
   const resendRequests: number[] = [];
+  const events: Array<{ seq: number; event: TimelineEvent }> = [];
   let snapshots = 0;
   const reader = new StreamReader(
     await createVerifier(publicKey),
@@ -71,7 +72,7 @@ export async function createViewer(publicKey: string, size = { cols: 80, rows: 2
       },
       write: (output) => display.write(output),
     },
-    { requestResend: (fromSeq) => resendRequests.push(fromSeq) },
+    { requestResend: (fromSeq) => resendRequests.push(fromSeq), onEvent: (seq, event) => events.push({ seq, event }) },
   );
   const transport = new FakeTransport();
   let pending: Promise<void> = Promise.resolve();
@@ -83,6 +84,7 @@ export async function createViewer(publicKey: string, size = { cols: 80, rows: 2
     reader,
     display,
     resendRequests,
+    events,
     get snapshots() {
       return snapshots;
     },
