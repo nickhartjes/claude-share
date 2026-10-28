@@ -32,7 +32,7 @@ Constraints that shape the approach:
 
 ### 1. TypeScript monorepo with Electron
 
-pnpm workspace with packages: `app` (Electron main + React renderer, built with electron-vite), `daemon` (host session process), `protocol` (message types, codecs, version), `hook` (hook command), `signalling` (Kubernetes service).
+pnpm workspace with packages: `app` (Electron main + React renderer, built with electron-vite), `daemon` (host session process, including the hook endpoint), `protocol` (message types, codecs, version), `signalling` (Kubernetes service).
 
 - *Why*: `node-pty`, `@xterm/headless` and `@xterm/addon-serialize` solve PTY handling and snapshot replay; Electron ships Chromium so the UI renders the same on all three platforms.
 - *Alternatives*: Rust + Tauri (no mature snapshot serializer, different webview per OS); Ghostty engine (unstable API, Zig toolchain). Both rejected during exploration.
@@ -68,7 +68,13 @@ Viewer terminals discard everything xterm.js emits through `onData`, so automati
 
 ### 6. Timeline from Claude Code hooks only
 
-The daemon starts `claude` with an extra settings file (`--settings`) that registers hooks; the spike confirmed the user's and project's own settings still apply. Each hook runs the bundled `hook` command, which forwards the hook payload to the daemon's local socket and always exits successfully within a short timeout, so a failure never blocks Claude.
+The daemon starts `claude` with an extra settings file (`--settings`) that registers hooks; the spike confirmed the user's and project's own settings still apply. The hooks are **HTTP hooks** (`"type": "http"`): Claude Code POSTs each event's JSON to an endpoint the daemon serves on `127.0.0.1` with a random port.
+
+- The endpoint requires `Authorization: Bearer <token>`. The token is a per-session secret that the daemon passes to Claude Code as the environment variable `CLAUDE_SHARE_HOOK_TOKEN`; the settings file references it through `headers` and `allowedEnvVars`, so the token is never written to disk.
+- The endpoint answers every authorized request immediately with an empty `204`, so it never influences Claude's decisions.
+- HTTP hook failures (connection refused, non-2xx, timeout) are non-blocking by default, so an unreachable daemon never stops Claude.
+- *Alternatives*: a `command` hook that runs a bundled forwarder per event (rejected: Claude Code waits for each hook, and starting a process per event, about 0.1-0.2 s for Electron in Node mode, would slow down every message because `MessageDisplay` fires many times per turn); `async` command hooks (no process-start delay for Claude, but still one process per event).
+- *Limitation*: administrators can restrict HTTP hook URLs (`allowedHttpHookUrls`); then no events arrive and the timeline reports itself unavailable.
 
 Hook payloads contain everything the timeline needs (`docs/spikes/claude-hooks.md`), so the daemon does not read the transcript or the files Claude edits:
 
