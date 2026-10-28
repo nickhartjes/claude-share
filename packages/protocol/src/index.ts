@@ -5,3 +5,4 @@ export * from './signing.ts';
 export * from './timeline.ts';
 export * from './version.ts';
 export * from './stream-reader.ts';
+export * from './signalling.ts';
