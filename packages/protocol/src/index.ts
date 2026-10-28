@@ -8,3 +8,4 @@ export * from './stream-reader.ts';
 export * from './signalling.ts';
 export * from './invite.ts';
 export * from './signal-auth.ts';
+export * from './signalling-client.ts';

@@ -173,6 +173,33 @@ describe('StreamHub', () => {
     });
   });
 
+  it('recovers when a frame is altered on the way: the viewer discards it and gets it resent', async () => {
+    const pty = setup();
+    const viewer = await createViewer(keys.publicKey);
+    const feed = await hub!.attach(viewer.transport);
+    const deliver = viewer.transport.onSend;
+    let altered = false;
+    viewer.transport.onSend = (bytes) => {
+      // Alter the payload of output frame 2 (kind byte 1, seq in bytes 1-8) the first time it passes.
+      const view = new DataView(bytes.buffer, bytes.byteOffset);
+      if (!altered && bytes[0] === 1 && view.getBigUint64(1) === 2n) {
+        altered = true;
+        const copy = bytes.slice();
+        copy[10]! ^= 0xff;
+        deliver(copy);
+      } else deliver(bytes);
+    };
+    for (let i = 0; i < 6; i++) pty.emit(`line ${i}\r\n`);
+    await settle(viewer);
+    expect(viewer.resendRequests).toEqual([2]);
+    expect(viewer.reader.lastOutputSeq).toBe(1);
+
+    if (feed.ok) feed.resend(2);
+    await settle(viewer);
+    expect(viewer.reader.lastOutputSeq).toBe(5);
+    expect(viewer.display.serialize()).toBe((await session!.snapshot()).data);
+  });
+
   describe('timeline events', () => {
     const prompt = (n: number) => ({ kind: 'prompt' as const, outputSeq: n, at: n, promptId: `p${n}`, text: `prompt ${n}` });
 

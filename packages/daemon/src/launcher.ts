@@ -15,6 +15,8 @@ export interface LaunchOptions {
   sessionId: string;
   sessionDir: string;
   cwd: string;
+  /** Further daemon arguments, such as `--signalling-url` and `--username`. */
+  args?: string[];
   timeoutMs?: number;
 }
 
@@ -34,10 +36,10 @@ export type StartupLine =
  * and resolves once the daemon reports that it accepts connections.
  */
 export function launchDaemon(options: LaunchOptions): Promise<DaemonInfo> {
-  const { runtime, entry, sessionId, sessionDir, cwd, timeoutMs = 10_000 } = options;
+  const { runtime, entry, sessionId, sessionDir, cwd, args = [], timeoutMs = 10_000 } = options;
   const child = spawn(
     runtime.execPath,
-    [entry, '--session-id', sessionId, '--session-dir', sessionDir, '--cwd', cwd],
+    [entry, '--session-id', sessionId, '--session-dir', sessionDir, '--cwd', cwd, ...args],
     { detached: true, stdio: ['ignore', 'pipe', 'pipe'], env: { ...process.env, ...runtime.env }, windowsHide: true },
   );
 

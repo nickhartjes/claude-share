@@ -27,6 +27,7 @@ export class HostSession {
   private readonly hosts = new Set<AttachedHost>();
   private readonly outputListeners = new Set<OutputListener>();
   private readonly inputListeners = new Set<(data: string) => void>();
+  private readonly exitListeners = new Set<(exitCode: number) => void>();
   private readonly resizeListeners = new Set<(size: { afterSeq: number; cols: number; rows: number }) => void>();
   private nextSeq = 0;
   private cols: number;
@@ -43,6 +44,7 @@ export class HostSession {
     pty.onExit(({ exitCode }) => {
       this.exitCode = exitCode;
       this.broadcast({ type: 'claude-exited', exitCode });
+      for (const listener of this.exitListeners) listener(exitCode);
     });
     // While a host window is attached, its terminal answers queries; otherwise the mirror does, so
     // Claude Code never waits on an unanswered query (design decision 5).
@@ -64,6 +66,12 @@ export class HostSession {
     return () => this.outputListeners.delete(listener);
   }
 
+  /** Calls `listener` when Claude Code exits. */
+  onExit(listener: (exitCode: number) => void): () => void {
+    this.exitListeners.add(listener);
+    return () => this.exitListeners.delete(listener);
+  }
+
   /** Calls `listener` with input the host typed into the terminal. */
   onHostInput(listener: (data: string) => void): () => void {
     this.inputListeners.add(listener);
@@ -74,6 +82,11 @@ export class HostSession {
   onResize(listener: (size: { afterSeq: number; cols: number; rows: number }) => void): () => void {
     this.resizeListeners.add(listener);
     return () => this.resizeListeners.delete(listener);
+  }
+
+  /** Current terminal size, as the host set it. */
+  get size(): { cols: number; rows: number } {
+    return { cols: this.cols, rows: this.rows };
   }
 
   /** Last output sequence number produced, or -1 before any output. */

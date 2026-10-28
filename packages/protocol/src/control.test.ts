@@ -5,12 +5,13 @@ import { ProtocolError } from './errors.ts';
 describe('control messages', () => {
   const viewerMessages: ViewerMessage[] = [
     { type: 'hello', protocolVersion: 1, username: 'nick' },
-    { type: 'hello', protocolVersion: 1, username: 'nick', lastOutputSeq: 41, lastEventSeq: 7 },
+    { type: 'hello', protocolVersion: 1, username: 'nick', lastOutputSeq: 41, lastEventSeq: 7, resumeToken: 't' },
     { type: 'resend', fromOutputSeq: 12 },
     { type: 'leave' },
   ];
   const hostMessages: HostMessage[] = [
-    { type: 'welcome', protocolVersion: 1, viewerId: 'v1', sessionPublicKey: 'AAAA', cols: 100, rows: 30 },
+    { type: 'welcome', protocolVersion: 1, viewerId: 'v1', sessionPublicKey: 'AAAA', cols: 100, rows: 30, resumeToken: 't' },
+    { type: 'rejoin-code', code: '7K2M9QXH4TPA' },
     { type: 'refused', reason: 'session-full', message: 'This session is full' },
     { type: 'participants', participants: [{ id: 'h', username: 'nick', role: 'host', label: 'nick' }] },
     { type: 'status', claude: 'working' },

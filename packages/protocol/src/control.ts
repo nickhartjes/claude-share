@@ -28,6 +28,8 @@ export const ViewerMessage = z.discriminatedUnion('type', [
     lastOutputSeq: seq.optional(),
     /** Last timeline event sequence number the viewer has, when reconnecting. */
     lastEventSeq: seq.optional(),
+    /** Token from an earlier `welcome`: the viewer takes its old place instead of joining anew. */
+    resumeToken: z.string().max(128).optional(),
   }).strict(),
   z.object({ type: z.literal('resend'), fromOutputSeq: seq }).strict(),
   z.object({ type: z.literal('leave') }).strict(),
@@ -44,8 +46,12 @@ export const HostMessage = z.discriminatedUnion('type', [
     sessionPublicKey: z.string(),
     cols: z.number().int().positive(),
     rows: z.number().int().positive(),
+    /** Secret for reconnecting as the same viewer; never shown to other participants. */
+    resumeToken: z.string(),
   }),
   z.object({ type: z.literal('refused'), reason: RefusalReason, message: z.string() }),
+  /** The current invite code, so an admitted viewer can reconnect after the host rotated it. */
+  z.object({ type: z.literal('rejoin-code'), code: z.string() }),
   z.object({ type: z.literal('participants'), participants: z.array(Participant) }),
   z.object({
     type: z.literal('status'),

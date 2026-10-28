@@ -97,7 +97,12 @@ describe.skipIf(process.platform === 'win32')('recording a running session', () 
   it('marks the recording complete when the host closes the session', async () => {
     const { endpoint, tokenFile, sessionDir } = await launch('echo hello; exec cat');
     const connection = await connectLocal(endpoint, await readFile(tokenFile, 'utf8'));
-    await sleep(300);
+    // Wait until the output has reached the session (and so the recording) before closing.
+    await new Promise<void>((resolve) =>
+      connection.onMessage((message) => {
+        if (JSON.stringify(message).includes('hello')) resolve();
+      }),
+    );
     connection.send({ type: 'close-session' });
     await sleep(500);
 

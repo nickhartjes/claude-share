@@ -2,4 +2,5 @@ packages:
   - packages/*
 allowBuilds:
   esbuild: true
+  node-datachannel: true
   node-pty: true

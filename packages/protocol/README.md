@@ -21,7 +21,7 @@ Viewer messages come from untrusted peers and are validated strictly: unknown ty
 
 | `type` | Fields | Meaning |
 |---|---|---|
-| `hello` | `protocolVersion`, `username`, `lastOutputSeq?`, `lastEventSeq?` | First message on a new connection. The `last*` fields are set when reconnecting |
+| `hello` | `protocolVersion`, `username`, `lastOutputSeq?`, `lastEventSeq?`, `resumeToken?` | First message on a new connection. When reconnecting, the `last*` fields say where the viewer left off and `resumeToken` lets it take its old place |
 | `resend` | `fromOutputSeq` | Ask again for output from a sequence number, for example after a frame failed verification |
 | `leave` | | The viewer is leaving the session |
 
@@ -29,7 +29,8 @@ Viewer messages come from untrusted peers and are validated strictly: unknown ty
 
 | `type` | Fields | Meaning |
 |---|---|---|
-| `welcome` | `protocolVersion`, `viewerId`, `sessionPublicKey`, `cols`, `rows` | Viewer admitted. `sessionPublicKey` verifies every stream frame |
+| `welcome` | `protocolVersion`, `viewerId`, `sessionPublicKey`, `cols`, `rows`, `resumeToken` | Viewer admitted. `sessionPublicKey` verifies every stream frame; `resumeToken` is a secret for reconnecting as the same viewer |
+| `rejoin-code` | `code` | The current invite code, sent after `welcome` and after every rotation, so an admitted viewer can reconnect without asking the host. A removed viewer does not get it |
 | `refused` | `reason`, `message` | Viewer not admitted. `reason` is `viewer-outdated`, `host-outdated`, `session-full`, `removed` or `session-ended`; `message` is shown to the user |
 | `participants` | `participants[]` (`id`, `username`, `role`, `label`) | Full participant list, sent on every change. `label` adds a suffix when usernames collide |
 | `status` | `claude` (`starting`, `working`, `waiting`, `exited`) | What Claude Code is doing |

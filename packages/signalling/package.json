@@ -15,5 +15,8 @@
   "devDependencies": {
     "@types/ws": "^8.18.2",
     "esbuild": "^0.28.2"
+  },
+  "exports": {
+    "./server": "./src/server.ts"
   }
 }
