@@ -1,0 +1,10 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "rootDir": "src",
+    // Shared by the daemon (Node) and viewers (Chromium): both provide these web APIs.
+    "lib": ["ES2023", "DOM"]
+  },
+  "include": ["src"]
+}
