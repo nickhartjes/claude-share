@@ -80,7 +80,8 @@ Hook payloads contain everything the timeline needs (`docs/spikes/claude-hooks.m
 
 | Timeline entry | Source |
 |---|---|
-| Session started / ended | `SessionStart` / `SessionEnd` |
+| Session started | The daemon, when it starts Claude Code (`SessionStart` supports only command and MCP tool hooks, not HTTP) |
+| Session ended | `SessionEnd` |
 | Prompt | `UserPromptSubmit` (`prompt`, `prompt_id`) |
 | Response text, live | `MessageDisplay` (`message_id`, `delta`, `final`), including text between tool calls |
 | Response text, final | `Stop` (`last_assistant_message`) |
@@ -89,7 +90,7 @@ Hook payloads contain everything the timeline needs (`docs/spikes/claude-hooks.m
 | Tool not run | A `PreToolUse` without a matching result when `Stop` arrives (for example a call blocked by a permission check) |
 | File diff | `PostToolUse.tool_response` for file-editing tools: `structuredPatch` and `originalFile` for edits, `content` with `originalFile: null` for new files |
 
-Events are grouped per prompt by `prompt_id`. Each event is stamped with the current output sequence number, which links timeline entries to terminal positions. Payload parsing lives in one adapter tested against the recorded fixtures. If no hook event arrives after `SessionStart` is expected, the timeline reports itself unavailable (`session-timeline`, Degraded mode) while the terminal mirror keeps working.
+Events are grouped per prompt by `prompt_id`. Each event is stamped with the current output sequence number, which links timeline entries to terminal positions. Payload parsing lives in one adapter tested against the recorded fixtures. If the host submits input (Enter) and no hook event arrives within 10 seconds, or a payload cannot be parsed, the timeline reports itself unavailable (`session-timeline`, Degraded mode) while the terminal mirror keeps working.
 
 - *Alternatives*: reading the transcript file (written asynchronously, may not contain the current turn yet, and full of internal entry types; the hooks reference recommends `last_assistant_message` instead); daemon-side before/after file reads (unnecessary because the payload carries the patch); Agent SDK (requires an API key and replaces the real CLI).
 

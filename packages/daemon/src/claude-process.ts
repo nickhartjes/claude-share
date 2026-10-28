@@ -96,17 +96,19 @@ export interface StartClaudeOptions {
   rows: number;
   /** Extra command-line arguments, such as `--settings <file>` for hooks. */
   args?: string[];
+  /** Extra environment variables for the Claude Code process. */
+  env?: Record<string, string>;
   host?: HostEnvironment;
 }
 
 /** Starts Claude Code in a pseudo-terminal in `cwd`. Throws PrerequisiteError if it cannot run. */
-export function startClaude({ cwd, cols, rows, args = [], host = currentHost }: StartClaudeOptions): IPty {
+export function startClaude({ cwd, cols, rows, args = [], env = {}, host = currentHost }: StartClaudeOptions): IPty {
   const claude = checkPrerequisites(host);
   return pty.spawn(claude, args, {
     name: 'xterm-256color',
     cols,
     rows,
     cwd,
-    env: { ...host.env, TERM: 'xterm-256color', COLORTERM: 'truecolor' } as Record<string, string>,
+    env: { ...host.env, ...env, TERM: 'xterm-256color', COLORTERM: 'truecolor' } as Record<string, string>,
   });
 }

@@ -3,6 +3,8 @@ import { mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { parseArgs } from 'node:util';
 import { checkPrerequisites, PrerequisiteError, startClaude } from './claude-process.ts';
+import { startHookEndpoint } from './hook-endpoint.ts';
+import { HOOK_TOKEN_ENV, writeHookSettings } from './hook-settings.ts';
 import { HostSession } from './host-session.ts';
 import type { StartupLine } from './launcher.ts';
 import { OutputLog } from './output-log.ts';
@@ -37,8 +39,15 @@ try {
 
 await mkdir(sessionDir, { recursive: true });
 const outputLog = await OutputLog.create(join(sessionDir, 'output.log'));
+const hookEvents: unknown[] = [];
+const hooks = await startHookEndpoint((payload) => hookEvents.push(payload));
+const hookSettingsFile = join(sessionDir, 'hook-settings.json');
+await writeHookSettings(hookSettingsFile, hooks.url);
 // No await between starting Claude Code and subscribing: output must not arrive unobserved.
-const session = new HostSession(startClaude({ cwd, ...size }), size);
+const session = new HostSession(
+  startClaude({ cwd, ...size, args: ['--settings', hookSettingsFile], env: { [HOOK_TOKEN_ENV]: hooks.token } }),
+  size,
+);
 session.onOutput((seq, data) => outputLog.append(seq, data));
 
 const tokenFile = join(sessionDir, 'token');
@@ -54,6 +63,7 @@ const server = await startLocalServer(endpoint, token, (connection) => {
 async function shutdown(): Promise<void> {
   session.close();
   await outputLog.close();
+  await hooks.close();
   // Give the session-ended message a moment to reach the windows before disconnecting them.
   await new Promise((resolve) => setTimeout(resolve, 100));
   await server.close();
