@@ -34,6 +34,10 @@ describe('control messages', () => {
     expect(() => decodeViewerMessage(JSON.stringify({ type: 'input', data: 'rm -rf /\r' }))).toThrow(ProtocolError);
   });
 
+  it('rejects resize requests from viewers: only the host sets the terminal size', () => {
+    expect(() => decodeViewerMessage(JSON.stringify({ type: 'resize', cols: 200, rows: 60 }))).toThrow(ProtocolError);
+  });
+
   it('rejects extra fields on viewer messages', () => {
     expect(() => decodeViewerMessage(JSON.stringify({ type: 'leave', data: 'x' }))).toThrow(ProtocolError);
   });

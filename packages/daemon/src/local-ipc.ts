@@ -91,6 +91,7 @@ function tokensMatch(expected: string, received: unknown): boolean {
 }
 
 export interface LocalServer {
+  /** Stops listening and disconnects every client. */
   close(): Promise<void>;
 }
 
@@ -100,7 +101,10 @@ export async function startLocalServer(
   token: string,
   onClient: (connection: LocalConnection) => void,
 ): Promise<LocalServer> {
+  const sockets = new Set<Socket>();
   const server: Server = createServer((socket) => {
+    sockets.add(socket);
+    socket.on('close', () => sockets.delete(socket));
     const connection = wrap(socket);
     const timer = setTimeout(() => socket.destroy(), AUTH_TIMEOUT_MS);
     const stopAuth = connection.onMessage((message) => {
@@ -124,7 +128,12 @@ export async function startLocalServer(
   });
   if (process.platform !== 'win32') await chmod(endpoint, 0o600);
   return {
-    close: () => new Promise((resolve) => server.close(() => resolve())),
+    // Also drops open connections; server.close() alone waits for them to end.
+    close: () =>
+      new Promise((resolve) => {
+        server.close(() => resolve());
+        for (const socket of sockets) socket.destroy();
+      }),
   };
 }
 

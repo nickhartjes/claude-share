@@ -25,9 +25,9 @@
 
 - [x] 4.1 Implement daemon start-up from the app with a local socket (Unix socket or named pipe) protected by a token in a user-only file; verify an integration test that a client with the wrong token is rejected on all three platforms
 - [x] 4.2 Spawn `claude` in `node-pty` in the chosen working directory, with checks for a missing `claude` CLI and for Git Bash on Windows; verify tests cover the success path and both error messages (`session-hosting`: Start a Claude Code session)
-- [ ] 4.3 Implement host attach/detach so the app window can close and reattach with the full terminal state; verify an integration test that restarts the client mid-session and receives the same screen (`session-hosting`: Session survives the host window)
-- [ ] 4.4 Enforce host-only input and host-only resize, and forward headless-mirror query replies only while no host window is attached; verify unit tests that viewer input and viewer resize are dropped (`session-hosting`: Host owns input, Host owns terminal size)
-- [ ] 4.5 Handle `claude` exiting on its own and the host closing the session (process ends, status broadcast, daemon exits); verify integration tests for both paths (`session-hosting`: Close a session)
+- [x] 4.3 Implement host attach/detach so the app window can close and reattach with the full terminal state; verify an integration test that restarts the client mid-session and receives the same screen (`session-hosting`: Session survives the host window)
+- [x] 4.4 Enforce host-only input and host-only resize, and forward headless-mirror query replies only while no host window is attached; verify unit tests that viewer input and viewer resize are dropped (`session-hosting`: Host owns input, Host owns terminal size)
+- [x] 4.5 Handle `claude` exiting on its own and the host closing the session (process ends, status broadcast, daemon exits); verify integration tests for both paths (`session-hosting`: Close a session)
 
 ## 5. Terminal streaming
 

@@ -1,5 +1,6 @@
 import { spawn } from 'node:child_process';
 import { createInterface } from 'node:readline';
+import { PrerequisiteError, type PrerequisiteProblem } from './claude-process.ts';
 
 /** How to run the daemon entry script: plain Node in tests, Electron in Node mode in the app. */
 export interface DaemonRuntime {
@@ -23,12 +24,10 @@ export interface DaemonInfo {
   tokenFile: string;
 }
 
-/** Message the daemon prints on stdout once it accepts connections. */
-export interface ReadyLine {
-  ready: true;
-  endpoint: string;
-  tokenFile: string;
-}
+/** First line the daemon prints on stdout: either it accepts connections, or why it cannot start. */
+export type StartupLine =
+  | { ready: true; endpoint: string; tokenFile: string }
+  | { ready: false; problem: PrerequisiteProblem; message: string };
 
 /**
  * Starts a daemon detached from the caller, so it keeps running when the app window closes,
@@ -46,10 +45,11 @@ export function launchDaemon(options: LaunchOptions): Promise<DaemonInfo> {
     let stderr = '';
     child.stderr.setEncoding('utf8');
     child.stderr.on('data', (chunk: string) => (stderr += chunk));
-    const fail = (message: string) => {
+    const fail = (message: string | Error) => {
       clearTimeout(timer);
+      child.removeAllListeners('exit');
       child.kill();
-      reject(new Error(`${message}${stderr ? `\n${stderr.trim()}` : ''}`));
+      reject(typeof message === 'string' ? new Error(`${message}${stderr ? `\n${stderr.trim()}` : ''}`) : message);
     };
     const timer = setTimeout(() => fail('Daemon did not report ready in time'), timeoutMs);
     child.once('error', (error) => fail(`Daemon failed to start: ${error.message}`));
@@ -57,11 +57,15 @@ export function launchDaemon(options: LaunchOptions): Promise<DaemonInfo> {
 
     const lines = createInterface({ input: child.stdout });
     lines.once('line', (line) => {
-      let ready: ReadyLine;
+      let ready: StartupLine;
       try {
-        ready = JSON.parse(line) as ReadyLine;
+        ready = JSON.parse(line) as StartupLine;
       } catch {
         fail(`Unexpected daemon output: ${line}`);
+        return;
+      }
+      if (!ready.ready) {
+        fail(new PrerequisiteError(ready.problem, ready.message));
         return;
       }
       clearTimeout(timer);
