@@ -1,0 +1,32 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    name: Check (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v5
+      # Installs node, pnpm and just as pinned in mise.toml.
+      - uses: jdx/mise-action@v3
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm test
+
+  linux:
+    name: Check (linux container)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      # CI pulls base images from Docker Hub; local builds use the ECR pull-through cache.
+      - run: docker build -f docker/linux.Dockerfile --build-arg REGISTRY=docker.io --target check -t claude-share-linux-check .
+      - run: docker run --rm claude-share-linux-check
