@@ -62,8 +62,8 @@
 
 ## 9. Sharing and connections
 
-- [ ] 9.1 Implement invite code generation (12 base32 characters) and HKDF derivation of room id and auth key; verify unit tests that both sides derive identical values and that the room id does not reveal the auth key (`session-sharing`: Invite code)
-- [ ] 9.2 Authenticate SDP offers and answers with an HMAC under the auth key and reject tampered messages; verify a test where a modified fingerprint is rejected (`session-sharing`: End-to-end encryption)
+- [x] 9.1 Implement invite code generation (12 base32 characters) and HKDF derivation of room id and auth key; verify unit tests that both sides derive identical values and that the room id does not reveal the auth key (`session-sharing`: Invite code)
+- [x] 9.2 Authenticate SDP offers and answers with an HMAC under the auth key and reject tampered messages; verify a test where a modified fingerprint is rejected (`session-sharing`: End-to-end encryption)
 - [ ] 9.3 Implement the daemon side: accept viewers over `node-datachannel`, assign viewer ids, send the session's signing public key in the authenticated handshake, enforce the host-configurable viewer limit (1–20, default 20) and broadcast the participant list with collision suffixes; verify integration tests for join, a viewer over the limit being refused, lowering the limit below the current count, and duplicate usernames (`session-sharing`: Join with invite code, Participant list; `session-streaming`: Session capacity, Host-configurable viewer limit)
 - [ ] 9.4 Verify signatures on the viewer side and re-request data that fails verification; verify an integration test that injects an altered chunk and the viewer recovers the correct one (`session-streaming`: Stream authenticity)
 - [ ] 9.5 Implement revoke (rotate code, keep viewers) and remove (rotate code, disconnect viewer with a reason); verify integration tests for both (`session-sharing`: Invite code lifetime, Remove a viewer)

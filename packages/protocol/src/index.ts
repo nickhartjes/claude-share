@@ -6,3 +6,5 @@ export * from './timeline.ts';
 export * from './version.ts';
 export * from './stream-reader.ts';
 export * from './signalling.ts';
+export * from './invite.ts';
+export * from './signal-auth.ts';
