@@ -1,3 +1,4 @@
+import type { TerminalSnapshot } from '@claude-share/protocol';
 import serializeAddon from '@xterm/addon-serialize';
 import xtermHeadless from '@xterm/headless';
 
@@ -7,13 +8,7 @@ const { SerializeAddon } = serializeAddon;
 /** Begin synchronized output (DEC mode 2026). */
 const BEGIN_SYNCHRONIZED_OUTPUT = '\x1b[?2026h';
 
-export interface Snapshot {
-  /** Last output sequence number included in `data`, or -1 if no output yet. */
-  seq: number;
-  data: string;
-  cols: number;
-  rows: number;
-}
+export type Snapshot = TerminalSnapshot;
 
 /** A headless copy of the session's terminal, used to bring late joiners and reattaching windows up to date. */
 export class TerminalMirror {

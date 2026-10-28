@@ -17,20 +17,12 @@ import {
   type Participant,
   type ViewerMessage,
 } from '@claude-share/protocol';
+import type { ClaudeStatus, SharingState } from '@claude-share/protocol';
+
+export type { ClaudeStatus, SharingState };
 import type { StreamHub, ViewerFeed } from './stream-hub.ts';
 
 export const MAX_VIEWERS = 20;
-
-export type ClaudeStatus = 'starting' | 'working' | 'waiting' | 'exited';
-
-export interface SharingState {
-  /** Formatted invite code, for example `7K2M-9QXH-4TPA`. */
-  inviteCode: string;
-  /** `unavailable` while the signalling service cannot be reached; the session itself keeps running. */
-  signalling: 'connecting' | 'available' | 'unavailable';
-  viewerLimit: number;
-  participants: Participant[];
-}
 
 export interface HostSharingOptions {
   signallingUrl: string;

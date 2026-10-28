@@ -17,5 +17,9 @@
   },
   "devDependencies": {
     "@claude-share/signalling": "workspace:*"
+  },
+  "exports": {
+    ".": "./src/index.ts",
+    "./main": "./src/main.ts"
   }
 }

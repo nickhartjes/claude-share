@@ -5,9 +5,10 @@ import type { TimelineEvent } from './timeline.ts';
 
 /** The viewer's terminal, as seen by the stream reader. */
 export interface TerminalSink {
-  /** Replaces everything on the terminal with a snapshot. */
-  load(snapshot: Uint8Array): void | Promise<void>;
-  write(output: Uint8Array): void | Promise<void>;
+  /** Replaces everything on the terminal with a snapshot covering output up to `seq`. */
+  load(snapshot: Uint8Array, seq: number): void | Promise<void>;
+  /** Appends the output chunk with sequence number `seq`. */
+  write(output: Uint8Array, seq: number): void | Promise<void>;
 }
 
 export interface StreamReaderOptions {
@@ -72,7 +73,7 @@ export class StreamReader {
         this.snapshotParts.set(frame.seq, parts);
         if (parts.some((part) => part === undefined)) return;
         this.snapshotParts.clear();
-        await this.sink.load(concat(parts as Uint8Array[]));
+        await this.sink.load(concat(parts as Uint8Array[]), frame.seq);
         this.lastSeq = frame.seq;
         this.resendRequested = undefined;
         return;
@@ -83,7 +84,7 @@ export class StreamReader {
           this.requestResend(this.lastSeq + 1);
           return;
         }
-        await this.sink.write(frame.data);
+        await this.sink.write(frame.data, frame.seq);
         this.lastSeq = frame.seq;
         this.resendRequested = undefined;
         return;

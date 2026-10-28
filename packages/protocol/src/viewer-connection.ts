@@ -1,3 +1,4 @@
+import type { ClaudeStatus } from './app-types.ts';
 import { decodeHostMessage, encodeControl, type HostMessage, type Participant, type ViewerMessage } from './control.ts';
 import { ProtocolError } from './errors.ts';
 import { deriveInviteSecrets, parseInviteCode, type InviteSecrets } from './invite.ts';
@@ -29,7 +30,6 @@ export type ViewerState =
   | { kind: 'ended' }
   | { kind: 'failed'; reason: FailureReason; message: string };
 
-export type ClaudeStatus = Extract<HostMessage, { type: 'status' }>['claude'];
 
 export interface ViewerConnectionOptions {
   signallingUrl: string;

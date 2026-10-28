@@ -1,9 +1,9 @@
 import { mkdir, open, readdir, readFile, rm, stat, writeFile, type FileHandle } from 'node:fs/promises';
 import { join } from 'node:path';
-import { TimelineEvent } from '@claude-share/protocol';
+import { TimelineEvent, type Recording, type RecordingSummary, type TerminalResize } from '@claude-share/protocol';
 import { unzipSync, zipSync, type Zippable } from 'fflate';
 import { z } from 'zod';
-import { OutputLog, parseOutputLog, type OutputChunk } from './output-log.ts';
+import { OutputLog, parseOutputLog } from './output-log.ts';
 import type { Snapshot } from './terminal-mirror.ts';
 
 // A session recording (design decision 9): a directory on the host with the files below. Other
@@ -34,17 +34,10 @@ export const Manifest = z.object({
 export type Manifest = z.infer<typeof Manifest>;
 
 const Resize = z.object({ afterSeq: z.number().int(), cols: z.number().int().positive(), rows: z.number().int().positive() });
-export type TerminalResize = z.infer<typeof Resize>;
 const RecordedEvent = z.object({ seq: z.number().int().nonnegative(), event: TimelineEvent });
 const StoredSnapshot = z.object({ seq: z.number().int(), cols: z.number().int(), rows: z.number().int(), data: z.string() });
 
-export interface Recording {
-  manifest: Manifest;
-  output: OutputChunk[];
-  events: Array<z.infer<typeof RecordedEvent>>;
-  resizes: TerminalResize[];
-  snapshots: Snapshot[];
-}
+export type { Recording, RecordingSummary, TerminalResize };
 
 /** Raised when a directory or file is not a recording this app can open; `message` says why. */
 export class RecordingFormatError extends Error {
@@ -218,16 +211,6 @@ const directorySource = (dir: string): FileSource => ({
 
 export function readRecording(dir: string): Promise<Recording> {
   return readFrom(directorySource(dir));
-}
-
-export interface RecordingSummary {
-  id: string;
-  dir: string;
-  cwd: string;
-  startedAt: number;
-  durationMs: number;
-  /** False if the session did not end normally (still running, or the app or machine stopped). */
-  complete: boolean;
 }
 
 /** Lists the recordings in `root` (one directory per session), newest first. Skips directories that are not recordings. */
