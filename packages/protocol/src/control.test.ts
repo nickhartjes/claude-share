@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { decodeHostMessage, decodeViewerMessage, encodeControl, type HostMessage, type ViewerMessage } from './control.js';
-import { ProtocolError } from './errors.js';
+import { decodeHostMessage, decodeViewerMessage, encodeControl, type HostMessage, type ViewerMessage } from './control.ts';
+import { ProtocolError } from './errors.ts';
 
 describe('control messages', () => {
   const viewerMessages: ViewerMessage[] = [

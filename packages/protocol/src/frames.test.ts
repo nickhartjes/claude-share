@@ -1,8 +1,8 @@
 import { beforeAll, describe, expect, it } from 'vitest';
-import { FrameVerificationError, ProtocolError } from './errors.js';
-import { decodeFrame, encodeFrame, type Frame } from './frames.js';
-import type { TimelineEvent } from './timeline.js';
-import { createSessionKeys, createVerifier, SIGNATURE_LENGTH, type SessionKeys, type Verifier } from './signing.js';
+import { FrameVerificationError, ProtocolError } from './errors.ts';
+import { decodeFrame, encodeFrame, type Frame } from './frames.ts';
+import type { TimelineEvent } from './timeline.ts';
+import { createSessionKeys, createVerifier, SIGNATURE_LENGTH, type SessionKeys, type Verifier } from './signing.ts';
 
 const bytes = (text: string) => new TextEncoder().encode(text);
 

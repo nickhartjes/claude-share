@@ -15,6 +15,10 @@
     "erasableSyntaxOnly": true,
     "lib": [
       "ES2023"
-    ]
+    ],
+    "types": [
+      "node"
+    ],
+    "rewriteRelativeImportExtensions": true
   }
 }

@@ -1,6 +1,6 @@
-import { FrameVerificationError, ProtocolError } from './errors.js';
-import { SIGNATURE_LENGTH, type Signer, type Verifier } from './signing.js';
-import { TimelineEvent } from './timeline.js';
+import { FrameVerificationError, ProtocolError } from './errors.ts';
+import { SIGNATURE_LENGTH, type Signer, type Verifier } from './signing.ts';
+import { TimelineEvent } from './timeline.ts';
 
 // Stream frames travel as binary messages over the reliable, ordered `stream` data channel.
 //

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { ProtocolError } from './errors.js';
+import { ProtocolError } from './errors.ts';
 
 // Control messages travel as JSON over the reliable, ordered `control` data channel.
 

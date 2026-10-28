@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { checkVersion } from './version.js';
+import { checkVersion } from './version.ts';
 
 describe('checkVersion', () => {
   it('accepts equal versions', () => {
