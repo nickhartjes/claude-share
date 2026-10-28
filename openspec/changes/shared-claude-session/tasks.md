@@ -72,8 +72,8 @@
 
 ## 10. App user interface
 
-- [ ] 10.1 Build the start screen: username setup (required, persisted), host a session (choose a working directory) or join with an invite code; verify component tests for the required username and both flows (`session-hosting`: App role per session, Username)
-- [ ] 10.2 Build the host view: interactive terminal, invite code with copy, revoke, participant list with remove, viewer limit setting (1–20), close session; verify component tests for each control
+- [x] 10.1 Build the start screen: username setup (required, persisted), host a session (choose a working directory) or join with an invite code; verify component tests for the required username and both flows (`session-hosting`: App role per session, Username)
+- [x] 10.2 Build the host view: interactive terminal, invite code with copy, revoke, participant list with remove, viewer limit setting (1–20), close session; verify component tests for each control
 - [ ] 10.3 Build the viewer terminal pane: read-only, follow and free-scroll modes with a "new output" indicator, search with match stepping, copy; verify component tests for each behaviour (`viewer-experience`: Follow and free-scroll modes, Search, Copy, Read-only for viewers)
 - [ ] 10.4 Build the timeline pane: prompt list with jump-to-prompt, tool entries with status, responses, and terminal sync from entry to output position; verify component tests for jumping and for the degraded-mode message (`viewer-experience`: Jump to prompt; `session-timeline`: Timeline stays in sync with the terminal)
 - [ ] 10.5 Build the files pane: touched files list and per-file diff history; verify component tests with fixture diffs
