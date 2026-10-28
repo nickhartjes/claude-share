@@ -1,5 +1,7 @@
 import type { LocalConnection } from './local-ipc.ts';
-import { TerminalMirror } from './terminal-mirror.ts';
+import { TerminalMirror, type Snapshot } from './terminal-mirror.ts';
+
+export type OutputListener = (seq: number, data: string) => void;
 
 /** The parts of a node-pty terminal the session uses; lets tests substitute a fake. */
 export interface PtyLike {
@@ -23,6 +25,7 @@ interface AttachedHost {
 export class HostSession {
   private readonly mirror: TerminalMirror;
   private readonly hosts = new Set<AttachedHost>();
+  private readonly outputListeners = new Set<OutputListener>();
   private nextSeq = 0;
   private cols: number;
   private rows: number;
@@ -50,6 +53,20 @@ export class HostSession {
     return this.hosts.size;
   }
 
+  /**
+   * Calls `listener` with every output chunk, in order, with sequence numbers starting at 0 and
+   * increasing by one. Returns an unsubscribe function.
+   */
+  onOutput(listener: OutputListener): () => void {
+    this.outputListeners.add(listener);
+    return () => this.outputListeners.delete(listener);
+  }
+
+  /** Snapshot of the terminal; output after `seq` follows through `onOutput`. */
+  snapshot(): Promise<Snapshot> {
+    return this.mirror.snapshot();
+  }
+
   /** Brings a host window up to date with a snapshot, then streams live output to it. */
   async attachHost(connection: LocalConnection): Promise<void> {
     const host: AttachedHost = { connection, pending: [] };
@@ -72,6 +89,7 @@ export class HostSession {
   private handleOutput(data: string): void {
     const seq = this.nextSeq++;
     this.mirror.write(seq, data);
+    for (const listener of this.outputListeners) listener(seq, data);
     for (const host of this.hosts) {
       if (host.pending) host.pending.push({ seq, data });
       else host.connection.send({ type: 'output', seq, data });

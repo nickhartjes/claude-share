@@ -137,6 +137,15 @@ describe('HostSession', () => {
     }
   });
 
+  it('reports every output chunk once, in order, with gap-free sequence numbers', async () => {
+    const { pty } = await setup();
+    const seen: Array<[number, string]> = [];
+    session!.onOutput((seq, data) => seen.push([seq, data]));
+    const chunks = Array.from({ length: 50 }, (_, i) => `chunk ${i}\r\n`);
+    for (const chunk of chunks) pty.emit(chunk);
+    expect(seen).toEqual(chunks.map((data, seq) => [seq, data]));
+  });
+
   it('forwards input and resizes from host windows to the terminal', async () => {
     const { pty, attach } = await setup();
     const window = await attach();
