@@ -70,7 +70,7 @@ Big-endian layout:
 ### Sequence numbers
 
 - **Output frames**: `seq` is the output sequence number. It starts at 0 and increases by one per frame, with no gaps.
-- **Snapshot parts**: `seq` is the output sequence number the snapshot covers up to (inclusive). A large snapshot is split into `parts` frames numbered `part` 0 to `parts - 1`; the viewer applies it once all parts arrived.
+- **Snapshot parts**: `seq` is the last output sequence number the snapshot covers. On the wire it is stored plus one, so a snapshot taken before any output (`-1`) is stored as `0`; `decodeFrame` undoes this. A large snapshot is split into `parts` frames numbered `part` 0 to `parts - 1`; the viewer applies it once all parts arrived.
 - **Event frames**: `seq` is the timeline event sequence number, a separate counter starting at 0. Each event also has `outputSeq`, linking it to a terminal position.
 
 ### Late join

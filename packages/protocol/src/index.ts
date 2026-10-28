@@ -4,3 +4,4 @@ export * from './frames.ts';
 export * from './signing.ts';
 export * from './timeline.ts';
 export * from './version.ts';
+export * from './stream-reader.ts';

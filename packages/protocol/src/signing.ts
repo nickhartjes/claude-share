@@ -18,20 +18,22 @@ export interface SessionKeys {
 }
 
 export async function createSessionKeys(): Promise<SessionKeys> {
-  const pair = (await crypto.subtle.generateKey(ALGORITHM, false, ['sign', 'verify'])) as CryptoKeyPair;
+  const pair = await crypto.subtle.generateKey(ALGORITHM, false, ['sign', 'verify']);
+  // Ed25519 always yields a key pair; the check narrows the type without naming DOM-only types.
+  if (!('privateKey' in pair)) throw new Error('Ed25519 key generation did not return a key pair');
   const raw = new Uint8Array(await crypto.subtle.exportKey('raw', pair.publicKey));
   return {
     signer: {
-      sign: async (data) => new Uint8Array(await crypto.subtle.sign(ALGORITHM, pair.privateKey, data as BufferSource)),
+      sign: async (data) => new Uint8Array(await crypto.subtle.sign(ALGORITHM, pair.privateKey, data as Uint8Array<ArrayBuffer>)),
     },
     publicKey: toBase64(raw),
   };
 }
 
 export async function createVerifier(publicKey: string): Promise<Verifier> {
-  const key = await crypto.subtle.importKey('raw', fromBase64(publicKey) as BufferSource, ALGORITHM, false, ['verify']);
+  const key = await crypto.subtle.importKey('raw', fromBase64(publicKey) as Uint8Array<ArrayBuffer>, ALGORITHM, false, ['verify']);
   return {
-    verify: (data, signature) => crypto.subtle.verify(ALGORITHM, key, signature as BufferSource, data as BufferSource),
+    verify: (data, signature) => crypto.subtle.verify(ALGORITHM, key, signature as Uint8Array<ArrayBuffer>, data as Uint8Array<ArrayBuffer>),
   };
 }
 

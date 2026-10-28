@@ -6,7 +6,8 @@ import { TimelineEvent } from './timeline.ts';
 //
 // Layout (big-endian):
 //   kind     u8      1 = output, 2 = snapshot part, 3 = timeline event
-//   seq      u64     output: output sequence number; snapshot: output seq the snapshot covers up to;
+//   seq      u64     output: output sequence number; snapshot: last output seq the snapshot covers,
+//                    plus one (so a snapshot taken before any output, seq -1, is stored as 0);
 //                    event: timeline event sequence number
 //   [snapshot only] part u32, parts u32
 //   payload  bytes   output/snapshot: terminal bytes; event: UTF-8 JSON of a TimelineEvent
@@ -25,12 +26,14 @@ const encoder = new TextEncoder();
 const decoder = new TextDecoder();
 
 export async function encodeFrame(frame: Frame, signer: Signer): Promise<Uint8Array> {
+  const wireSeq = frame.kind === 'snapshot' ? frame.seq + 1 : frame.seq;
+  if (!Number.isSafeInteger(wireSeq) || wireSeq < 0) throw new ProtocolError(`Invalid ${frame.kind} frame seq ${frame.seq}`);
   const payload = frame.kind === 'event' ? encoder.encode(JSON.stringify(frame.event)) : frame.data;
   const headerLength = frame.kind === 'snapshot' ? SNAPSHOT_HEADER : HEADER;
   const bytes = new Uint8Array(headerLength + payload.length + SIGNATURE_LENGTH);
   const view = new DataView(bytes.buffer);
   view.setUint8(0, KIND_CODES[frame.kind]);
-  view.setBigUint64(1, BigInt(frame.seq));
+  view.setBigUint64(1, BigInt(wireSeq));
   if (frame.kind === 'snapshot') {
     view.setUint32(HEADER, frame.part);
     view.setUint32(HEADER + 4, frame.parts);
@@ -58,7 +61,7 @@ export async function decodeFrame(bytes: Uint8Array, verifier: Verifier): Promis
       if (signedLength < SNAPSHOT_HEADER) throw new ProtocolError('Snapshot frame too short');
       return {
         kind: 'snapshot',
-        seq,
+        seq: seq - 1,
         part: view.getUint32(HEADER),
         parts: view.getUint32(HEADER + 4),
         data: bytes.slice(SNAPSHOT_HEADER, signedLength),

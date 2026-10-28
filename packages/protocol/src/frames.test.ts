@@ -19,6 +19,7 @@ describe('stream frames', () => {
     { kind: 'output', seq: 0, data: bytes('\x1b[1mhello\x1b[0m\r\n') },
     { kind: 'output', seq: 2 ** 40, data: new Uint8Array() },
     { kind: 'snapshot', seq: 1234, part: 2, parts: 5, data: bytes('snapshot bytes') },
+    { kind: 'snapshot', seq: -1, part: 0, parts: 1, data: bytes('snapshot before any output') },
     {
       kind: 'event',
       seq: 3,
@@ -55,6 +56,10 @@ describe('stream frames', () => {
     const other = await createSessionKeys();
     const encoded = await encodeFrame({ kind: 'output', seq: 5, data: bytes('ls\r\n') }, other.signer);
     await expect(decodeFrame(encoded, verifier)).rejects.toThrow(FrameVerificationError);
+  });
+
+  it('refuses to encode a negative output sequence number', async () => {
+    await expect(encodeFrame({ kind: 'output', seq: -1, data: bytes('x') }, keys.signer)).rejects.toThrow(ProtocolError);
   });
 
   it('rejects a frame that is too short', async () => {
