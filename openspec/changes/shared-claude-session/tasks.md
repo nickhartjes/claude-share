@@ -35,7 +35,7 @@
 - [x] 5.2 Implement late-join delivery (snapshot at sequence N, then chunks after N), prefixing the snapshot with `ESC[?2026h` while synchronized output is active (design decision 4); verify a test with the recorded spike session that a snapshot taken mid-frame restores the mode, and a test where a client joining after 1,000 chunks ends with the same buffer contents as one connected from the start (`session-streaming`: Full session for late joiners)
 - [x] 5.3 Implement reconnect from the last received sequence, with snapshot fallback for large gaps and a "session ended" reply after close; verify tests for a short gap, a large gap and a closed session (`session-streaming`: Reconnect without loss)
 - [x] 5.4 Implement per-viewer backpressure with snapshot resync so a slow viewer never stalls the PTY; verify a test with one throttled viewer and one normal viewer
-- [ ] 5.5 Implement the read-only viewer terminal that discards all xterm.js `onData` output; verify a test that a terminal query answered by a viewer terminal produces no message (`session-streaming`: Viewers cannot write to the session)
+- [x] 5.5 Implement the read-only viewer terminal that discards all xterm.js `onData` output; verify a test that a terminal query answered by a viewer terminal produces no message (`session-streaming`: Viewers cannot write to the session)
 
 ## 6. Structured timeline
 
