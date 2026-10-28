@@ -20,6 +20,7 @@ describe('stream frames', () => {
     { kind: 'output', seq: 2 ** 40, data: new Uint8Array() },
     { kind: 'snapshot', seq: 1234, part: 2, parts: 5, data: bytes('snapshot bytes') },
     { kind: 'snapshot', seq: -1, part: 0, parts: 1, data: bytes('snapshot before any output') },
+    { kind: 'event', seq: 0, event: { kind: 'session-started', outputSeq: -1, at: 1_700_000_000_000 } },
     {
       kind: 'event',
       seq: 3,

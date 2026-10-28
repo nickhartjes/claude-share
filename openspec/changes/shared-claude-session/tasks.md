@@ -49,9 +49,9 @@
 
 ## 7. Session recording
 
-- [ ] 7.1 Write the recording directory (`manifest.json`, `output.log`, `events.jsonl`, periodic snapshots) with user-only permissions and one-second flushes; verify a test that kills the daemon mid-session and reopens a recording missing at most the last second (`session-recording`: Save sessions on the host)
-- [ ] 7.2 Implement listing and deleting recordings with date, working directory and duration; verify tests that delete removes the data from disk (`session-recording`: List and delete recordings)
-- [ ] 7.3 Implement export to a single `.ccsession` file and import with manifest version validation; verify a round-trip test plus a test that an invalid file is refused with a reason (`session-recording`: Export, Open an exported recording)
+- [x] 7.1 Write the recording directory (`manifest.json`, `output.log`, `events.jsonl`, periodic snapshots) with user-only permissions and one-second flushes; verify a test that kills the daemon mid-session and reopens a recording missing at most the last second (`session-recording`: Save sessions on the host)
+- [x] 7.2 Implement listing and deleting recordings with date, working directory and duration; verify tests that delete removes the data from disk (`session-recording`: List and delete recordings)
+- [x] 7.3 Implement export to a single `.ccsession` file and import with manifest version validation; verify a round-trip test plus a test that an invalid file is refused with a reason (`session-recording`: Export, Open an exported recording)
 
 ## 8. Signalling service and TURN
 

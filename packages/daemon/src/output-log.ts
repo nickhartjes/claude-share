@@ -65,9 +65,8 @@ export class OutputLog {
   }
 }
 
-/** Reads every complete record of a log. A truncated last record (after a crash) is ignored. */
-export async function readOutputLog(path: string): Promise<OutputChunk[]> {
-  const bytes = await readFile(path);
+/** Parses every complete record of a log. A truncated last record (after a crash) is ignored. */
+export function parseOutputLog(bytes: Buffer): OutputChunk[] {
   const chunks: OutputChunk[] = [];
   let offset = 0;
   while (offset + HEADER <= bytes.length) {
@@ -78,4 +77,8 @@ export async function readOutputLog(path: string): Promise<OutputChunk[]> {
     offset += HEADER + length;
   }
   return chunks;
+}
+
+export async function readOutputLog(path: string): Promise<OutputChunk[]> {
+  return parseOutputLog(await readFile(path));
 }

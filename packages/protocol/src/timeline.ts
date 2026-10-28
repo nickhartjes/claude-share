@@ -3,7 +3,8 @@ import { z } from 'zod';
 // Timeline events carry `outputSeq`: the terminal output sequence number current when the event
 // happened, which lets a viewer jump from a timeline entry to its place in the terminal.
 const base = {
-  outputSeq: z.number().int().nonnegative(),
+  /** -1 for events before any terminal output (such as session-started). */
+  outputSeq: z.number().int().min(-1),
   at: z.number().int().nonnegative(),
 };
 

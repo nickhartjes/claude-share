@@ -8,7 +8,7 @@ import { startHookEndpoint } from './hook-endpoint.ts';
 import { HOOK_TOKEN_ENV, writeHookSettings } from './hook-settings.ts';
 import { HostSession } from './host-session.ts';
 import type { StartupLine } from './launcher.ts';
-import { OutputLog } from './output-log.ts';
+import { Recorder } from './recording.ts';
 import { StreamHub } from './stream-hub.ts';
 import { TimelineService } from './timeline-service.ts';
 import { createToken, localEndpoint, startLocalServer } from './local-ipc.ts';
@@ -20,6 +20,7 @@ const { values } = parseArgs({
     cwd: { type: 'string' },
     cols: { type: 'string', default: '100' },
     rows: { type: 'string', default: '30' },
+    'app-version': { type: 'string', default: '0.0.0' },
   },
 });
 const sessionId = values['session-id'];
@@ -40,8 +41,14 @@ try {
   process.exit(1);
 }
 
-await mkdir(sessionDir, { recursive: true });
-const outputLog = await OutputLog.create(join(sessionDir, 'output.log'));
+await mkdir(sessionDir, { recursive: true, mode: 0o700 });
+const recorder = await Recorder.create(sessionDir, {
+  appVersion: values['app-version'],
+  sessionId,
+  cwd,
+  ...size,
+  startedAt: Date.now(),
+});
 const keys = await createSessionKeys();
 // `timeline` is declared below, in the same synchronous block that starts Claude Code, so it
 // exists before any hook request can be handled.
@@ -53,13 +60,32 @@ const session = new HostSession(
   startClaude({ cwd, ...size, args: ['--settings', hookSettingsFile], env: { [HOOK_TOKEN_ENV]: hooks.token } }),
   size,
 );
-session.onOutput((seq, data) => outputLog.append(seq, data));
+session.onOutput((seq, data) => recorder.output(seq, data));
+session.onResize((resize) => recorder.resize(resize));
 const hub = new StreamHub(session, keys.signer);
-const timeline = new TimelineService({ cwd, outputSeq: () => session.lastOutputSeq, emit: (event) => hub.publishEvent(event) });
+let nextEventSeq = 0;
+const timeline = new TimelineService({
+  cwd,
+  outputSeq: () => session.lastOutputSeq,
+  emit: (event) => {
+    // The hub numbers events in the same order, starting at 0.
+    recorder.event(nextEventSeq++, event);
+    hub.publishEvent(event);
+  },
+});
 timeline.sessionStarted();
 session.onHostInput((data) => {
   if (data.includes('\r')) timeline.hostSubmitted();
 });
+
+// Periodic snapshots let a replay start near any point without replaying all output.
+let lastSnapshotSeq = -1;
+const snapshotTimer = setInterval(() => {
+  if (session.lastOutputSeq === lastSnapshotSeq) return;
+  lastSnapshotSeq = session.lastOutputSeq;
+  void session.snapshot().then((snapshot) => recorder.snapshot(snapshot));
+}, 60_000);
+snapshotTimer.unref();
 
 const tokenFile = join(sessionDir, 'token');
 const token = await createToken(tokenFile);
@@ -75,7 +101,8 @@ async function shutdown(): Promise<void> {
   session.close();
   hub.close();
   timeline.dispose();
-  await outputLog.close();
+  clearInterval(snapshotTimer);
+  await recorder.finish();
   await hooks.close();
   // Give the session-ended message a moment to reach the windows before disconnecting them.
   await new Promise((resolve) => setTimeout(resolve, 100));

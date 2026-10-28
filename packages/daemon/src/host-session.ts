@@ -27,6 +27,7 @@ export class HostSession {
   private readonly hosts = new Set<AttachedHost>();
   private readonly outputListeners = new Set<OutputListener>();
   private readonly inputListeners = new Set<(data: string) => void>();
+  private readonly resizeListeners = new Set<(size: { afterSeq: number; cols: number; rows: number }) => void>();
   private nextSeq = 0;
   private cols: number;
   private rows: number;
@@ -67,6 +68,12 @@ export class HostSession {
   onHostInput(listener: (data: string) => void): () => void {
     this.inputListeners.add(listener);
     return () => this.inputListeners.delete(listener);
+  }
+
+  /** Calls `listener` when the host changes the terminal size; `afterSeq` is the last output before it. */
+  onResize(listener: (size: { afterSeq: number; cols: number; rows: number }) => void): () => void {
+    this.resizeListeners.add(listener);
+    return () => this.resizeListeners.delete(listener);
   }
 
   /** Last output sequence number produced, or -1 before any output. */
@@ -122,6 +129,7 @@ export class HostSession {
     if (this.exitCode === undefined) this.pty.resize(this.cols, this.rows);
     this.mirror.resize(this.cols, this.rows);
     this.broadcast({ type: 'resize', cols: this.cols, rows: this.rows });
+    for (const listener of this.resizeListeners) listener({ afterSeq: this.nextSeq - 1, cols: this.cols, rows: this.rows });
   }
 
   private broadcast(message: { type: string } & Record<string, unknown>): void {

@@ -111,4 +111,4 @@ A viewer drops any output frame whose `seq` is not exactly one higher than the l
 | `timeline-unavailable` | Structured events cannot be captured; the terminal mirror still works |
 | `timeline-available` | Events arrive again after `timeline-unavailable` was caused by missing events |
 
-Every event has `outputSeq` and `at` (milliseconds since the epoch); events for a prompt share `promptId`.
+Every event has `outputSeq` (`-1` if it happened before any terminal output, such as `session-started`) and `at` (milliseconds since the epoch); events for a prompt share `promptId`.
