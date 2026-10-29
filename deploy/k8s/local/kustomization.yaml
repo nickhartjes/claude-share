@@ -1,0 +1,43 @@
+# Local test deployment on Colima's k3s: the production manifests, with only what differs on a
+# laptop patched in. Deploy with `just local-up`, test with `just local-test` (docker/README.md).
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: claude-share-local
+resources:
+  - namespace.yaml
+  - ../base
+images:
+  # Docker Hub instead of the test environment's ECR pull-through cache.
+  - name: 654261343536.dkr.ecr.eu-central-1.amazonaws.com/tst-docker-hub/coturn/coturn
+    newName: coturn/coturn
+patches:
+  # The signalling image is built into Colima's Docker, which k3s uses directly: never pull it.
+  # TURN is reached on the node's address, which only the pod knows.
+  - target: { kind: Deployment, name: claude-share-signalling }
+    patch: |-
+      - { op: add, path: /spec/template/spec/containers/0/imagePullPolicy, value: Never }
+      - { op: test, path: /spec/template/spec/containers/0/env/3/name, value: TURN_URLS }
+      - op: replace
+        path: /spec/template/spec/containers/0/env/3
+        value: { name: TURN_URLS, value: "turn:$(NODE_IP):3478?transport=udp,turn:$(NODE_IP):3478?transport=tcp" }
+      - { op: test, path: /spec/template/spec/containers/0/env/4/name, value: STUN_URLS }
+      - op: replace
+        path: /spec/template/spec/containers/0/env/4
+        value: { name: STUN_URLS, value: "stun:$(NODE_IP):3478" }
+      - op: add
+        path: /spec/template/spec/containers/0/env/0
+        value: { name: NODE_IP, valueFrom: { fieldRef: { fieldPath: status.hostIP } } }
+  # coturn advertises the node's address, which is private here. Allow relaying to that one address
+  # (both peers' relays live on it); every other private range stays denied.
+  # Here both peers are always relayed through this one coturn, and relay traffic never leaves the
+  # pod, so widen the relay range without exposing it: 20 relayed viewers need 40 ports, plus
+  # allocations that linger after earlier tests.
+  - target: { kind: Deployment, name: claude-share-turn }
+    patch: |-
+      - { op: test, path: /spec/template/spec/containers/0/env/1/name, value: TURN_EXTERNAL_IP }
+      - op: replace
+        path: /spec/template/spec/containers/0/env/1
+        value: { name: TURN_EXTERNAL_IP, valueFrom: { fieldRef: { fieldPath: status.hostIP } } }
+      - { op: add, path: /spec/template/spec/containers/0/args/-, value: "--allowed-peer-ip=$(TURN_EXTERNAL_IP)" }
+      - { op: test, path: /spec/template/spec/containers/0/args/3, value: "--max-port=49179" }
+      - { op: replace, path: /spec/template/spec/containers/0/args/3, value: "--max-port=49359" }

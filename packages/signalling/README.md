@@ -68,7 +68,7 @@ just signalling-image
 
 ## Deploy to Kubernetes
 
-The manifests are in `deploy/k8s` (kustomize):
+The manifests are in `deploy/k8s/base` (kustomize):
 
 | File | Contents |
 |---|---|
@@ -77,7 +77,7 @@ The manifests are in `deploy/k8s` (kustomize):
 | `kustomization.yaml` | The shared secret and the public addresses |
 
 Before deploying:
-1. Create `deploy/k8s/turn-secret.env` (git-ignored) with `TURN_SECRET=<long random value>`.
+1. Create `deploy/k8s/base/turn-secret.env` (git-ignored) with `TURN_SECRET=<long random value>`.
 2. Set `TURN_EXTERNAL_IP`, `TURN_URLS` and `STUN_URLS` in `kustomization.yaml` to the public address and ports agreed with the cluster operators (`docs/spikes/k8s-turn.md`).
 3. Set the image of `claude-share-signalling` to where `just signalling-image` pushed it.
 4. Expose the signalling Service through the cluster's ingress with TLS. WebSockets must be allowed on `/signal`.
@@ -85,9 +85,10 @@ Before deploying:
 Then apply the manifests:
 
 ```sh
-kubectl apply -k deploy/k8s -n <namespace>
+kubectl apply -k deploy/k8s/base -n <namespace>
 ```
 
 Security notes:
-- **coturn refuses to relay to private and link-local addresses** (`--denied-peer-ip`, `--no-loopback-peers`). Without that, anyone holding TURN credentials could reach services inside the cluster network.
-- **The relay port range in coturn's arguments must match the ports in the Service.** Each relayed viewer uses one or two ports.
+- **coturn refuses to relay to private and link-local addresses** (`--denied-peer-ip`, including loopback). Without that, anyone holding TURN credentials could reach services inside the cluster network.
+- **The relay port range in coturn's arguments must match the ports in the Service.** A viewer uses one relay port when only one side is relayed, and two when both are: 20 viewers that all need TURN take 40 ports, plus headroom for reconnects. The 20 ports in `coturn.yaml` cover 10 such viewers; when the range runs out, coturn logs `no available ports` and those viewers cannot connect.
+- **coturn allows its own pod IP as a peer** (`--allowed-peer-ip=$(POD_IP)`). When both peers are relayed, coturn relays between two of its own ports on that IP, which the private-range rules would otherwise refuse.

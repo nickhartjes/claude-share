@@ -17,6 +17,7 @@
     "esbuild": "^0.28.2"
   },
   "exports": {
-    "./server": "./src/server.ts"
+    "./server": "./src/server.ts",
+    "./turn-credentials": "./src/turn-credentials.ts"
   }
 }

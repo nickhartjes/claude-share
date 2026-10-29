@@ -3,14 +3,13 @@ import { createSessionKeys, type Participant, type SessionKeys } from '@claude-s
 import { ViewerConnection, type ViewerState } from '@claude-share/protocol/viewer';
 import { startSignallingServer, type SignallingServer } from '@claude-share/signalling/server';
 import nodeDataChannel from 'node-datachannel';
-import { RTCPeerConnection as PolyfillPeerConnection } from 'node-datachannel/polyfill';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 import { HostSession } from './host-session.ts';
+import { createPeerConnection } from './peer-connection.ts';
 import { HostSharing, withLabels, type SharingState } from './sharing.ts';
 import { StreamHub } from './stream-hub.ts';
 import { FakePty, headlessTerminal } from './test-support.ts';
 
-const createPeerConnection = (config: RTCConfiguration) => new PolyfillPeerConnection(config) as unknown as RTCPeerConnection;
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 async function until<T>(check: () => T | undefined | false, what: string, timeoutMs = 10_000): Promise<T> {

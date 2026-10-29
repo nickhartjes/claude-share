@@ -32,13 +32,18 @@ spec:
             - --no-multicast-peers
             # Never relay into private networks: otherwise TURN credentials would give access to
             # services inside the cluster.
-            - --no-loopback-peers
+            - --denied-peer-ip=127.0.0.0-127.255.255.255
             - --denied-peer-ip=10.0.0.0-10.255.255.255
             - --denied-peer-ip=172.16.0.0-172.31.255.255
             - --denied-peer-ip=192.168.0.0-192.168.255.255
             - --denied-peer-ip=169.254.0.0-169.254.255.255
             - --denied-peer-ip=100.64.0.0-100.127.255.255
+            # Except coturn's own relay address: when both peers are relayed, coturn relays between
+            # two of its own ports on the pod's IP.
+            - --allowed-peer-ip=$(POD_IP)
           env:
+            - name: POD_IP
+              valueFrom: { fieldRef: { fieldPath: status.podIP } }
             - name: TURN_EXTERNAL_IP
               valueFrom: { configMapKeyRef: { name: claude-share-network, key: TURN_EXTERNAL_IP } }
             - name: TURN_SECRET

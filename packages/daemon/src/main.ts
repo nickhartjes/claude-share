@@ -3,11 +3,11 @@ import { mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { parseArgs } from 'node:util';
 import { createSessionKeys, type TimelineEvent } from '@claude-share/protocol';
-import { RTCPeerConnection } from 'node-datachannel/polyfill';
 import { checkPrerequisites, PrerequisiteError, startClaude } from './claude-process.ts';
 import { startHookEndpoint } from './hook-endpoint.ts';
 import { HOOK_TOKEN_ENV, writeHookSettings } from './hook-settings.ts';
 import { HostSession } from './host-session.ts';
+import { createPeerConnection } from './peer-connection.ts';
 import type { StartupLine } from './launcher.ts';
 import { Recorder } from './recording.ts';
 import { StreamHub } from './stream-hub.ts';
@@ -113,7 +113,7 @@ const sharing = values['signalling-url']
       viewerLimit: Number(values['viewer-limit']),
       terminalSize: () => session.size,
       claudeStatus: () => claudeStatus,
-      createPeerConnection: (config) => new RTCPeerConnection(config) as unknown as globalThis.RTCPeerConnection,
+      createPeerConnection,
       onChange: (state) => toWindows({ type: 'sharing', state }),
     })
   : undefined;

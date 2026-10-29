@@ -416,7 +416,7 @@ function clampLimit(limit: number): number {
   return Math.min(MAX_VIEWERS, Math.max(1, Math.floor(limit)));
 }
 
-function toRtcIceServer(server: IceServer): RTCIceServer {
+export function toRtcIceServer(server: IceServer): RTCIceServer {
   return {
     urls: server.urls,
     ...(server.username !== undefined ? { username: server.username } : {}),

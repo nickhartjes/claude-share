@@ -11,11 +11,13 @@ RUN apt-get update \
     xvfb xauth \
     libgtk-3-0 libnss3 libxss1 libasound2 libgbm1 libxshmfence1 libdrm2 libatk-bridge2.0-0 libcups2 \
   && rm -rf /var/lib/apt/lists/*
-RUN npm install -g pnpm@12.16.1
+# The optional npmrc secret points npm and pnpm at another registry (the just recipes use
+# CodeArtifact); it is mounted only while installing, so it never ends up in an image layer.
+RUN --mount=type=secret,id=npmrc,target=/root/.npmrc npm install -g pnpm@12.16.1
 
 WORKDIR /repo
 
 FROM base AS check
 COPY . .
-RUN pnpm install --frozen-lockfile
+RUN --mount=type=secret,id=npmrc,target=/root/.npmrc pnpm install --frozen-lockfile
 CMD ["sh", "-c", "pnpm lint && pnpm typecheck && pnpm test"]

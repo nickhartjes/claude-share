@@ -19,6 +19,26 @@ To pull from Docker Hub directly instead of ECR:
 docker build -f docker/linux.Dockerfile --build-arg REGISTRY=docker.io --target check -t claude-share-linux-check .
 ```
 
+## npm registry
+
+The network blocks `registry.npmjs.org`, so the `just` recipes build with an `npmrc` build secret from `scripts/codeartifact-npmrc.sh`: the company's CodeArtifact npm registry with a fresh token (AWS profile `entrnce`). The secret is mounted only during installs and never ends up in an image layer. Without the secret (as in CI), builds use the public registry.
+
+## Local cluster
+
+`deploy/k8s/local` deploys `signalling` and `coturn` to Colima's built-in k3s (`colima start --kubernetes`), with Docker Hub images and only the differences a laptop needs patched in (see the comments there).
+
+```sh
+just local-up     # build the signalling image and deploy to namespace claude-share-local
+just local-test   # run packages/daemon/src/cluster.test.ts against it, from the Linux container
+just local-down   # remove the namespace
+```
+
+`local-test` runs the tests inside the VM's network (`docker run --network host`), because coturn needs UDP: Colima forwards only TCP ports to the Mac. The tests check that coturn accepts credentials from the shared secret and refuses expired or wrongly signed ones, and that a host and 1 or 20 viewers connect through the deployed signalling service with every connection relayed by coturn.
+
+`scripts/local-kubectl.sh` runs kubectl against the cluster through the port Colima forwards to localhost. macOS's Local Network privacy blocks most programs from the VM's own address (`no route to host`), even though `ping` works.
+
+If k3s keeps restarting after Colima was started with different network settings (`systemctl show k3s -p NRestarts` in `colima ssh`), its generated kubeconfigs in `/var/lib/rancher/k3s/server/cred` may still point at the API server's previous port; replacing that port with the current one and restarting k3s fixes it.
+
 ## Colima on macOS
 
 Start Colima from a normal terminal. A VM started from a sandboxed shell (such as Claude Code's) inherits its network restrictions and cannot reach any registry.

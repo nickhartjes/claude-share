@@ -11,7 +11,7 @@
 
 - [x] 2.1 Create the pnpm workspace with packages `app`, `daemon`, `protocol`, `hook` and `signalling`, shared TypeScript, lint and Vitest configuration; verify `pnpm install`, `pnpm lint` and `pnpm test` succeed on an empty test suite
 - [x] 2.2 Set up the Electron app with electron-vite and a React renderer showing an empty window; verify `pnpm --filter app dev` opens the window on macOS
-- [ ] 2.3 Add a Linux build and test container image (Node 24, build tools for native modules, Electron's Linux libraries and `xvfb`), based on images pulled through the test environment's ECR Docker Hub cache, plus a `just linux-check` recipe that runs lint, type check and tests in it; verify `just linux-check` passes on macOS via Colima
+- [x] 2.3 Add a Linux build and test container image (Node 24, build tools for native modules, Electron's Linux libraries and `xvfb`), based on images pulled through the test environment's ECR Docker Hub cache, plus a `just linux-check` recipe that runs lint, type check and tests in it; verify `just linux-check` passes on macOS via Colima
 - [ ] 2.4 Add CI that runs lint and tests on macOS, Linux (using the 2.3 image) and Windows runners; verify the pipeline is green on all three
 
 ## 3. Wire protocol
@@ -56,7 +56,7 @@
 ## 8. Signalling service and TURN
 
 - [x] 8.1 Implement the `signalling` WebSocket service with in-memory rooms keyed by room id, SDP/ICE relay, and per-IP and per-room rate limiting; verify integration tests for joining, relaying and rate limiting
-- [ ] 8.2 Issue short-lived TURN credentials using the TURN REST API shared secret; verify credentials are accepted by a local `coturn` and rejected after expiry
+- [x] 8.2 Issue short-lived TURN credentials using the TURN REST API shared secret; verify credentials are accepted by a local `coturn` and rejected after expiry
 - [ ] 8.3 Add a container image and Kubernetes manifests for `signalling` and `coturn` (using the endpoints from task 1.4), with a health endpoint; verify deployment to a test namespace and that the health check passes
 - [x] 8.4 Document deployment and configuration in `packages/signalling/README.md`
 
