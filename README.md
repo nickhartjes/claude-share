@@ -147,7 +147,7 @@ Run `just` to list all recipes. Others worth knowing:
 - [`release.yml`](.github/workflows/release.yml) builds and signs the installers when a `v*` tag is pushed. It publishes them, with the update metadata (`latest*.yml`), to this repository's [GitHub Releases](https://github.com/nickhartjes/specdeck/releases), where installed apps look for updates. The release stays a draft until every platform has uploaded. The tag must match the version in `packages/app/package.json`, and a tag with a suffix such as `v0.2.0-rc.1` becomes a prerelease. The workflow uses these repository secrets (listed at the top of the file), which are not set up yet:
   - the signing certificates and notarization key; until they exist, the installers are unsigned;
   - the signalling URL;
-  - `HOMEBREW_TAP_TOKEN`, a token that can push to [`nickhartjes/homebrew-tap`](https://github.com/nickhartjes/homebrew-tap). With it, each release updates the `specdeck` cask there.
+  - `HOMEBREW_TAP_DEPLOY_KEY`, the private half of an SSH deploy key with write access to [`nickhartjes/homebrew-tap`](https://github.com/nickhartjes/homebrew-tap). With it, each release updates the `specdeck` cask there ([`homebrew.yml`](.github/workflows/homebrew.yml), which you can also run by hand for a tag).
 
   After each release, the workflow also commits the new version and AppImage hash to [`nix/release.json`](nix/release.json), which the [flake](flake.nix) packages.
 

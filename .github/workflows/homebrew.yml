@@ -1,0 +1,98 @@
+# Writes Casks/specdeck.rb in nickhartjes/homebrew-tap for a published release. Called by
+# release.yml after each release; run it by hand to (re)write the cask for an existing tag.
+#
+# Repository secret:
+#   HOMEBREW_TAP_DEPLOY_KEY   private SSH deploy key with write access to nickhartjes/homebrew-tap
+#                             (the job is skipped with a warning while it is missing)
+name: Homebrew cask
+
+on:
+  workflow_call:
+    inputs:
+      tag: { type: string, required: true }
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag, for example v0.2.0
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  cask:
+    name: Update Homebrew cask
+    runs-on: ubuntu-latest
+    env:
+      TAG: ${{ inputs.tag }}
+      REPO: ${{ github.repository }}
+      TAP_KEY: ${{ secrets.HOMEBREW_TAP_DEPLOY_KEY }}
+    steps:
+      - name: Check for the tap deploy key
+        run: |
+          if [ -z "$TAP_KEY" ]; then
+            echo "::warning::HOMEBREW_TAP_DEPLOY_KEY is not set; the Homebrew cask was not updated."
+          fi
+      - name: Checkout tap
+        if: env.TAP_KEY != ''
+        uses: actions/checkout@v5
+        with:
+          repository: nickhartjes/homebrew-tap
+          ssh-key: ${{ secrets.HOMEBREW_TAP_DEPLOY_KEY }}
+          path: tap
+      - name: Render cask
+        if: env.TAP_KEY != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh release download "$TAG" -R "$REPO" -p 'SpecDeck-arm64.dmg' -p 'SpecDeck-x64.dmg' -D dmg
+          SHA_ARM=$(sha256sum dmg/SpecDeck-arm64.dmg | awk '{print $1}')
+          SHA_INTEL=$(sha256sum dmg/SpecDeck-x64.dmg | awk '{print $1}')
+          mkdir -p tap/Casks
+          cat > tap/Casks/specdeck.rb <<EOF
+          cask "specdeck" do
+            arch arm: "arm64", intel: "x64"
+
+            version "${TAG#v}"
+            sha256 arm:   "${SHA_ARM}",
+                   intel: "${SHA_INTEL}"
+
+            url "https://github.com/${REPO}/releases/download/v#{version}/SpecDeck-#{arch}.dmg"
+            name "SpecDeck"
+            desc "Share a Claude Code session with your team"
+            homepage "https://github.com/${REPO}"
+
+            livecheck do
+              url :url
+              strategy :github_latest
+            end
+
+            depends_on macos: ">= :monterey"
+
+            app "SpecDeck.app"
+
+            zap trash: [
+              "~/Library/Application Support/SpecDeck",
+              "~/Library/Caches/@specdeckapp-updater",
+              "~/Library/Logs/SpecDeck",
+              "~/Library/Preferences/com.entrnce.specdeck.plist",
+              "~/Library/Saved Application State/com.entrnce.specdeck.savedState",
+            ]
+          end
+          EOF
+          cat tap/Casks/specdeck.rb
+      - name: Commit and push
+        if: env.TAP_KEY != ''
+        working-directory: tap
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Casks/specdeck.rb
+          if git diff --cached --quiet; then
+            echo "No cask changes"
+            exit 0
+          fi
+          git commit -m "specdeck ${TAG#v}"
+          git push
