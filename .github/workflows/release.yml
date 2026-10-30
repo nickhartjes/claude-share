@@ -30,6 +30,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
+        with:
+          # The release notes list the commits since the previous release tag.
+          fetch-depth: 0
       - name: Check the tag matches the app version
         shell: bash
         run: |
@@ -41,7 +44,9 @@ jobs:
       - name: Create the draft
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "$GITHUB_REF_NAME" --draft --verify-tag --title "$GITHUB_REF_NAME" --generate-notes
+        run: |
+          scripts/release-notes.sh "$GITHUB_REF_NAME" > release-notes.md
+          gh release create "$GITHUB_REF_NAME" --draft --verify-tag --title "$GITHUB_REF_NAME" --notes-file release-notes.md
 
   package:
     name: Release (${{ matrix.os }})
