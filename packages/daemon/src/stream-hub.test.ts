@@ -57,7 +57,7 @@ describe('StreamHub', () => {
     expect(late.reader.lastOutputSeq).toBe(1019);
     expect(late.display.serialize()).toBe(early.display.serialize());
     expect((await session!.snapshot()).data).toBe(late.display.serialize());
-  });
+  }, 20_000); // Replaying 1000 chunks takes about 5 seconds on CI's Windows runners.
 
   it('splits large snapshots into parts that the viewer reassembles', async () => {
     const pty = setup({ snapshotPartBytes: 1024 });

@@ -1,5 +1,5 @@
 import { accessSync, constants } from 'node:fs';
-import { delimiter, dirname, join } from 'node:path';
+import { dirname, posix } from 'node:path';
 import pty, { type IPty } from 'node-pty';
 
 export type PrerequisiteProblem = 'claude-not-found' | 'git-bash-not-found';
@@ -43,10 +43,11 @@ function pathKey(env: HostEnvironment['env']): string | undefined {
 /** Finds `command` on PATH, trying PATHEXT extensions on Windows. */
 export function findOnPath(command: string, host: HostEnvironment): string | undefined {
   const key = pathKey(host.env);
-  const dirs = (key ? host.env[key] : undefined)?.split(host.platform === 'win32' ? ';' : delimiter) ?? [];
+  // Use the host's separators, not the ones of the platform this runs on (tests simulate other hosts).
+  const dirs = (key ? host.env[key] : undefined)?.split(host.platform === 'win32' ? ';' : posix.delimiter) ?? [];
   const extensions =
     host.platform === 'win32' ? (host.env['PATHEXT'] ?? '.EXE;.CMD;.BAT').split(';').map((e) => e.toLowerCase()) : [''];
-  const joinPath = host.platform === 'win32' ? (dir: string, name: string) => `${dir.replace(/\\$/, '')}\\${name}` : join;
+  const joinPath = host.platform === 'win32' ? (dir: string, name: string) => `${dir.replace(/\\$/, '')}\\${name}` : posix.join;
   for (const dir of dirs.filter(Boolean)) {
     for (const extension of extensions) {
       const candidate = joinPath(dir, command + extension);

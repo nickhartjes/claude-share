@@ -96,12 +96,14 @@ describe('TimelineBuilder', () => {
 
   it('lists a successfully read file as touched, relative to the session directory', () => {
     const { events, feed } = setup();
-    const read = { prompt_id: 'p', tool_name: 'Read', tool_use_id: 't', tool_input: { file_path: '/workspace/project/src/a.ts' } };
+    // Claude Code reports native paths, so build them with the platform's separators.
+    const file_path = join('/workspace/project', 'src', 'a.ts');
+    const read = { prompt_id: 'p', tool_name: 'Read', tool_use_id: 't', tool_input: { file_path } };
     feed([
       { hook_event_name: 'PreToolUse', ...read },
       { hook_event_name: 'PostToolUse', ...read, tool_response: { type: 'text' } },
     ]);
-    expect(events.at(-1)).toMatchObject({ kind: 'file-read', path: 'src/a.ts' });
+    expect(events.at(-1)).toMatchObject({ kind: 'file-read', path: join('src', 'a.ts') });
   });
 
   it('keeps paths outside the session directory absolute', () => {
