@@ -12,7 +12,7 @@
 - [x] 2.1 Create the pnpm workspace with packages `app`, `daemon`, `protocol`, `hook` and `signalling`, shared TypeScript, lint and Vitest configuration; verify `pnpm install`, `pnpm lint` and `pnpm test` succeed on an empty test suite
 - [x] 2.2 Set up the Electron app with electron-vite and a React renderer showing an empty window; verify `pnpm --filter app dev` opens the window on macOS
 - [x] 2.3 Add a Linux build and test container image (Node 24, build tools for native modules, Electron's Linux libraries and `xvfb`), based on images pulled through the test environment's ECR Docker Hub cache, plus a `just linux-check` recipe that runs lint, type check and tests in it; verify `just linux-check` passes on macOS via Colima
-- [ ] 2.4 Add CI that runs lint and tests on macOS, Linux (using the 2.3 image) and Windows runners; verify the pipeline is green on all three
+- [x] 2.4 Add CI that runs lint and tests on macOS, Linux (using the 2.3 image) and Windows runners; verify the pipeline is green on all three
 
 ## 3. Wire protocol
 
@@ -82,7 +82,7 @@
 
 ## 11. Packaging
 
-- [ ] 11.1 Configure electron-builder for macOS (dmg), Windows (nsis) and Linux (AppImage, deb), including native module rebuilds for `node-pty` and `node-datachannel` and an executable `spawn-helper` for `node-pty` on macOS; verify CI produces installable artifacts on all three platforms
+- [x] 11.1 Configure electron-builder for macOS (dmg), Windows (nsis) and Linux (AppImage, deb), including native module rebuilds for `node-pty` and `node-datachannel` and an executable `spawn-helper` for `node-pty` on macOS; verify CI produces installable artifacts on all three platforms
 - [ ] 11.2 Add code signing and macOS notarization to the release pipeline; verify a signed build installs without Gatekeeper or SmartScreen blocking on test machines
 - [ ] 11.3 Write user documentation in `docs/user-guide.md` (prerequisites, hosting, joining, recordings); verify a teammate can follow it to host and join a session
 
