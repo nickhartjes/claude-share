@@ -41,3 +41,6 @@ linux:
   executableName: claude-share
   category: Development
   maintainer: Entrnce
+deb:
+  # The default file name starts with the package name and would land in an "@claude-share/" folder.
+  artifactName: claude-share_${version}_${arch}.${ext}

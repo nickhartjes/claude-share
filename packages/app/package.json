@@ -43,5 +43,6 @@
   },
   "main": "out/main/index.js",
   "description": "Share a Claude Code session with your team",
+  "homepage": "https://github.com/nickhartjes/claude-share",
   "author": "Entrnce"
 }
