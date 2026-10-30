@@ -4,6 +4,8 @@ packages:
 # pulled. Set here so every machine resolves the same way CI and the Docker builds do.
 minimumReleaseAge: 1440
 allowBuilds:
+  # Downloads the Electron binary that `just dev` runs.
+  electron: true
   electron-winstaller: false
   esbuild: true
   node-datachannel: true
