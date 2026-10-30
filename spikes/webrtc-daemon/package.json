@@ -17,6 +17,13 @@
     "node-turn": "^0.0.6",
     "ws": "^8.22.0"
   },
+  "overrides": {
+    "node-turn": {
+      "js-yaml": "^3.15.2",
+      "log4js": "^6.9.1",
+      "flatted": "^3.4.2"
+    }
+  },
   "allowScripts": {
     "node-datachannel@0.33.4": true,
     "electron@45.1.0": true

@@ -30,6 +30,7 @@ Throughput is over loopback, so it only shows the stack is not a bottleneck; rea
 - **Closing produces noisy logs**: Chromium logs `User-Initiated Abort` data channel errors when the daemon closes the connection. Harmless, but the app should close channels explicitly and filter these from user-visible logs.
 - **Packaging**: `node-datachannel` loaded without running an install script (it ships prebuilt binaries); Electron needed its install script approved (`npm install-scripts approve electron`) to download its binary. The same will apply in the monorepo.
 - **Docker Hub was not reachable** from this machine's Docker VM, so coturn could not be used locally. Local development and CI use `node-turn` as a stand-in; coturn is still the production choice (task 8.3), and its image must come from a registry the cluster can reach.
+- **`node-turn` pins vulnerable dependencies**: 0.0.6 (the latest release) pins `js-yaml ~3.14`, `log4js ~6.3` and, through it, `flatted` 2.x, all with Dependabot alerts. `package.json` overrides them under `node-turn` to the patched versions. Remove the overrides if `node-turn` ever ships updated dependencies, or when this spike is deleted.
 
 ## Still to verify
 
