@@ -1,19 +1,46 @@
-# Signed release builds, started by pushing a tag like v0.1.0.
+# Release builds, started by pushing a tag like v0.1.0 that matches packages/app/package.json.
 #
-# Repository secrets:
+# The installers and update metadata (latest*.yml) are published to this repository's GitHub
+# Releases, where installed apps look for updates. The release stays a draft, which apps ignore,
+# until every platform has uploaded; then it is published. Tags with a suffix (v0.2.0-rc.1) are
+# published as prereleases, which only apps on a prerelease version update to.
+#
+# Repository secrets (signing and notarization are skipped while they are missing):
 #   MAC_CERTIFICATE (base64 .p12, Developer ID Application) and MAC_CERTIFICATE_PASSWORD
 #   APPLE_API_KEY (base64 .p8), APPLE_API_KEY_ID, APPLE_API_ISSUER   (notarization)
 #   WIN_CERTIFICATE (base64 .pfx) and WIN_CERTIFICATE_PASSWORD
-#   CLAUDE_SHARE_SIGNALLING_URL   (baked into the app as MAIN_VITE_SIGNALLING_URL)
+#   SPECDECK_SIGNALLING_URL   (baked into the app as MAIN_VITE_SIGNALLING_URL)
 name: Release
 
 on:
   push:
     tags: ['v*']
 
+permissions:
+  contents: write
+
 jobs:
+  draft:
+    name: Create draft release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Check the tag matches the app version
+        shell: bash
+        run: |
+          version="v$(node -p "require('./packages/app/package.json').version")"
+          if [ "$version" != "$GITHUB_REF_NAME" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME does not match the app version $version in packages/app/package.json"
+            exit 1
+          fi
+      - name: Create the draft
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" --draft --verify-tag --title "$GITHUB_REF_NAME" --generate-notes
+
   package:
     name: Release (${{ matrix.os }})
+    needs: draft
     strategy:
       matrix:
         include:
@@ -22,17 +49,17 @@ jobs:
           - { os: ubuntu-latest, target: --linux }
     runs-on: ${{ matrix.os }}
     env:
-      MAIN_VITE_SIGNALLING_URL: ${{ secrets.CLAUDE_SHARE_SIGNALLING_URL }}
+      MAIN_VITE_SIGNALLING_URL: ${{ secrets.SPECDECK_SIGNALLING_URL }}
     steps:
       - uses: actions/checkout@v5
       - uses: jdx/mise-action@v3
       - run: pnpm install --frozen-lockfile
-      - run: pnpm --filter @claude-share/app build
+      - run: pnpm --filter @specdeck/app build
       - name: Write the notarization key
         if: runner.os == 'macOS'
         shell: bash
         run: echo "${{ secrets.APPLE_API_KEY }}" | base64 --decode > "$RUNNER_TEMP/apple-api-key.p8"
-      - name: Package and sign
+      - name: Package, sign and upload to the draft
         shell: bash
         env:
           CSC_LINK: ${{ runner.os == 'macOS' && secrets.MAC_CERTIFICATE || secrets.WIN_CERTIFICATE }}
@@ -40,15 +67,34 @@ jobs:
           APPLE_API_KEY: ${{ runner.temp }}/apple-api-key.p8
           APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
           APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           extra=""
-          if [ "$RUNNER_OS" = "macOS" ]; then extra="--config.mac.notarize=true"; fi
-          pnpm --filter @claude-share/app exec electron-builder ${{ matrix.target }} $extra --publish never
+          # Unsigned until the certificates are set up (shared-claude-session task 11.2).
+          if [ -z "$CSC_LINK" ]; then export CSC_IDENTITY_AUTO_DISCOVERY=false; fi
+          if [ "$RUNNER_OS" = "macOS" ] && [ -n "$CSC_LINK" ] && [ -n "$APPLE_API_KEY_ID" ]; then extra="--config.mac.notarize=true"; fi
+          pnpm --filter @specdeck/app exec electron-builder ${{ matrix.target }} $extra --publish always
       - uses: actions/upload-artifact@v4
         with:
-          name: claude-share-${{ github.ref_name }}-${{ runner.os }}
+          name: specdeck-${{ github.ref_name }}-${{ runner.os }}
           path: |
             packages/app/release/*/*.dmg
+            packages/app/release/*/*.zip
+            packages/app/release/*/latest*.yml
             packages/app/release/*/*.exe
             packages/app/release/*/*.AppImage
             packages/app/release/*/*.deb
+
+  publish:
+    name: Publish release
+    needs: package
+    runs-on: ubuntu-latest
+    steps:
+      - name: Publish the draft
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          prerelease=false
+          case "$GITHUB_REF_NAME" in *-*) prerelease=true ;; esac
+          gh release edit "$GITHUB_REF_NAME" --draft=false --prerelease="$prerelease"

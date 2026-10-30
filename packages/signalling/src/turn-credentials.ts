@@ -1,5 +1,5 @@
 import { createHmac } from 'node:crypto';
-import type { IceServer } from '@claude-share/protocol';
+import type { IceServer } from '@specdeck/protocol';
 
 export interface TurnConfig {
   /** TURN URLs as clients reach them, for example `turn:turn.example.com:3478?transport=udp`. */

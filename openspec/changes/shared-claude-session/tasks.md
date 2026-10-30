@@ -40,7 +40,7 @@
 ## 6. Structured timeline
 
 - [x] 6.1 Serve the hook endpoint in the daemon on `127.0.0.1` (random port) that accepts POSTed hook payloads only with the session's bearer token and answers `204` at once; verify tests for a valid token, a missing or wrong token, and malformed bodies
-- [x] 6.2 Generate the session's hook settings file with HTTP hooks for the events listed in design decision 6 (token through `CLAUDE_SHARE_HOOK_TOKEN`, `allowedEnvVars`) and pass it with `--settings`, setting the variable on the Claude Code process; verify a test that posts every fixture in `spikes/claude-hooks/fixtures/` as Claude Code would and every event type reaches the daemon, plus an opt-in test against a real `claude -p` run
+- [x] 6.2 Generate the session's hook settings file with HTTP hooks for the events listed in design decision 6 (token through `SPECDECK_HOOK_TOKEN`, `allowedEnvVars`) and pass it with `--settings`, setting the variable on the Claude Code process; verify a test that posts every fixture in `spikes/claude-hooks/fixtures/` as Claude Code would and every event type reaches the daemon, plus an opt-in test against a real `claude -p` run
 - [x] 6.3 Turn hook events into timeline entries grouped by `prompt_id` (prompt, live and final response text, tool calls with success, failure or "not run" status), each stamped with the current output sequence number; verify unit tests using the recorded fixtures (`session-timeline`: Capture prompts, Capture responses, Capture tool calls)
 - [x] 6.4 Build file diffs from `PostToolUse.tool_response` (`structuredPatch` and `originalFile` for edits, `content` for new files) and maintain the touched files list; verify unit tests for an edit, a new file and a read-only touch (`session-timeline`: File change diffs, Touched files list)
 - [x] 6.5 Implement degraded mode when hook events stop arriving or cannot be parsed; verify a test where the hook adapter rejects a payload and the terminal stream continues while the timeline reports itself unavailable (`session-timeline`: Degraded mode)
@@ -51,7 +51,7 @@
 
 - [x] 7.1 Write the recording directory (`manifest.json`, `output.log`, `events.jsonl`, periodic snapshots) with user-only permissions and one-second flushes; verify a test that kills the daemon mid-session and reopens a recording missing at most the last second (`session-recording`: Save sessions on the host)
 - [x] 7.2 Implement listing and deleting recordings with date, working directory and duration; verify tests that delete removes the data from disk (`session-recording`: List and delete recordings)
-- [x] 7.3 Implement export to a single `.ccsession` file and import with manifest version validation; verify a round-trip test plus a test that an invalid file is refused with a reason (`session-recording`: Export, Open an exported recording)
+- [x] 7.3 Implement export to a single `.specdeck` file and import with manifest version validation; verify a round-trip test plus a test that an invalid file is refused with a reason (`session-recording`: Export, Open an exported recording)
 
 ## 8. Signalling service and TURN
 

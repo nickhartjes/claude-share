@@ -1,7 +1,7 @@
 import { writeFile } from 'node:fs/promises';
 
 /** Environment variable through which Claude Code gets the hook endpoint's token. */
-export const HOOK_TOKEN_ENV = 'CLAUDE_SHARE_HOOK_TOKEN';
+export const HOOK_TOKEN_ENV = 'SPECDECK_HOOK_TOKEN';
 
 /**
  * The hook events the timeline is built from (design decision 6). SessionStart is not among them:

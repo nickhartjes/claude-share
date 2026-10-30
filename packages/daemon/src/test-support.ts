@@ -1,5 +1,5 @@
 // Test helpers shared by daemon tests. Not part of the daemon itself.
-import { createVerifier, StreamReader, type TimelineEvent } from '@claude-share/protocol';
+import { createVerifier, StreamReader, type TimelineEvent } from '@specdeck/protocol';
 import serializeAddon from '@xterm/addon-serialize';
 import xtermHeadless from '@xterm/headless';
 import type { PtyLike } from './host-session.ts';

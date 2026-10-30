@@ -5,6 +5,6 @@ import type { Bridge } from '../../shared/bridge';
 declare global {
   interface Window {
     /** Exposed by the preload script (src/preload/index.ts). */
-    claudeShare: Bridge;
+    specDeck: Bridge;
   }
 }

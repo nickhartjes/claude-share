@@ -1,4 +1,4 @@
-import type { TimelineEvent } from '@claude-share/protocol';
+import type { TimelineEvent } from '@specdeck/protocol';
 import type { HookPayload } from './hook-endpoint.ts';
 import { HookPayloadError, TimelineBuilder, type TimelineBuilderOptions } from './timeline-builder.ts';
 

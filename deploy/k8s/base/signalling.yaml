@@ -1,21 +1,21 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: claude-share-signalling
-  labels: { app: claude-share-signalling }
+  name: specdeck-signalling
+  labels: { app: specdeck-signalling }
 spec:
   # Rooms live in memory: run exactly one replica.
   replicas: 1
   strategy: { type: Recreate }
   selector:
-    matchLabels: { app: claude-share-signalling }
+    matchLabels: { app: specdeck-signalling }
   template:
     metadata:
-      labels: { app: claude-share-signalling }
+      labels: { app: specdeck-signalling }
     spec:
       containers:
         - name: signalling
-          image: claude-share-signalling:latest
+          image: specdeck-signalling:latest
           ports:
             - containerPort: 8080
               name: http
@@ -28,11 +28,11 @@ spec:
             - name: TURN_TTL_SECONDS
               value: "3600"
             - name: TURN_URLS
-              valueFrom: { configMapKeyRef: { name: claude-share-network, key: TURN_URLS } }
+              valueFrom: { configMapKeyRef: { name: specdeck-network, key: TURN_URLS } }
             - name: STUN_URLS
-              valueFrom: { configMapKeyRef: { name: claude-share-network, key: STUN_URLS } }
+              valueFrom: { configMapKeyRef: { name: specdeck-network, key: STUN_URLS } }
             - name: TURN_SECRET
-              valueFrom: { secretKeyRef: { name: claude-share-turn, key: TURN_SECRET } }
+              valueFrom: { secretKeyRef: { name: specdeck-turn, key: TURN_SECRET } }
           readinessProbe:
             httpGet: { path: /healthz, port: http }
           livenessProbe:
@@ -50,9 +50,9 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: claude-share-signalling
+  name: specdeck-signalling
 spec:
-  selector: { app: claude-share-signalling }
+  selector: { app: specdeck-signalling }
   ports:
     - port: 8080
       targetPort: http

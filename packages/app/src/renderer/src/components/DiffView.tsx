@@ -1,4 +1,4 @@
-import type { DiffHunk } from '@claude-share/protocol';
+import type { DiffHunk } from '@specdeck/protocol';
 
 /** Renders diff hunks with old and new line numbers. Text stays selectable for copying. */
 export function DiffView({ title, hunks }: { title: string; hunks: DiffHunk[] }) {

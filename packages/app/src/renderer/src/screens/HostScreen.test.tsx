@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import type { SharingState } from '@claude-share/protocol';
+import type { SharingState } from '@specdeck/protocol';
 import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -28,6 +28,7 @@ function fakeHost() {
   const listeners = new Set<(event: HostEvent) => void>();
   const host = {
     start: vi.fn(async () => ({ ok: true }) as const),
+    startRecent: vi.fn(async () => ({ ok: true }) as const),
     resume: vi.fn(async () => true),
     onEvent: vi.fn((listener: (event: HostEvent) => void) => {
       listeners.add(listener);
@@ -51,7 +52,7 @@ describe('HostScreen', () => {
     terminal.current = fake;
   });
 
-  async function setup(mode: { start: string } | { resume: true } = { start: '/work' }) {
+  async function setup(mode: { start: string; recent?: boolean } | { resume: true } = { start: '/work' }) {
     const { host, emit } = fakeHost();
     const handlers = { onFailed: vi.fn(), onEnded: vi.fn() };
     render(<HostScreen bridge={{ host }} mode={mode} sharingConfigured {...handlers} />);
@@ -62,6 +63,12 @@ describe('HostScreen', () => {
   it('starts the session at the size the terminal fits', async () => {
     const { host } = await setup();
     expect(host.start).toHaveBeenCalledWith('/work', { cols: 120, rows: 40 });
+  });
+
+  it('starts a recent folder through the recent-folder check', async () => {
+    const { host } = await setup({ start: '/work', recent: true });
+    expect(host.startRecent).toHaveBeenCalledWith('/work', { cols: 120, rows: 40 });
+    expect(host.start).not.toHaveBeenCalled();
   });
 
   it('reattaches to a running session instead of starting one', async () => {

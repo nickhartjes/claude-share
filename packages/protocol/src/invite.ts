@@ -45,7 +45,7 @@ export interface InviteSecrets {
 async function hkdf(code: string, info: string): Promise<ArrayBuffer> {
   const material = await crypto.subtle.importKey('raw', encoder.encode(code), 'HKDF', false, ['deriveBits']);
   return crypto.subtle.deriveBits(
-    { name: 'HKDF', hash: 'SHA-256', salt: encoder.encode('claude-share/v1'), info: encoder.encode(info) },
+    { name: 'HKDF', hash: 'SHA-256', salt: encoder.encode('specdeck/v1'), info: encoder.encode(info) },
     material,
     256,
   );

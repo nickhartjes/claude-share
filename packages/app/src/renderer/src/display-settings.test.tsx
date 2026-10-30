@@ -7,7 +7,7 @@ import { flush } from './test-support';
 
 /** A bridge with settings in memory, whose writes complete only when `release` is called. */
 function fakeBridge() {
-  let stored: AppSettings = { ...DEFAULT_DISPLAY_SETTINGS, username: 'nick', signallingUrl: undefined };
+  let stored: AppSettings = { ...DEFAULT_DISPLAY_SETTINGS, username: 'nick', signallingUrl: undefined, recentFolders: [] };
   const listeners = new Set<(settings: AppSettings) => void>();
   const writes: Array<() => void> = [];
   const bridge = {

@@ -1,4 +1,4 @@
-# @claude-share/protocol
+# @specdeck/protocol
 
 The wire protocol between a host's daemon and its viewers. Both sides import this package; the recording format reuses the stream frames.
 

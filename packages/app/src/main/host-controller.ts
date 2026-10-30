@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { connectLocal, launchDaemon, PrerequisiteError, type DaemonInfo, type LocalConnection } from '@claude-share/daemon';
+import { connectLocal, launchDaemon, PrerequisiteError, type DaemonInfo, type LocalConnection } from '@specdeck/daemon';
 import type { HostEvent, StartResult } from '../shared/bridge';
 
 /** The running session, remembered so the app can reattach after its window or the app restarts. */
@@ -17,6 +17,8 @@ export interface HostControllerOptions {
   daemonEntry: string;
   emit(event: HostEvent): void;
   settings(): Promise<{ username: string | undefined; signallingUrl: string | undefined }>;
+  /** Called when a session may have started or ended; `isHosting()` says which. */
+  hostingChanged?(): void;
 }
 
 const isRunning = (pid: number) => {
@@ -59,6 +61,7 @@ export class HostController {
       await mkdir(this.options.sessionsDir, { recursive: true });
       await writeFile(this.options.stateFile, JSON.stringify({ ...daemon, sessionId } satisfies CurrentSession), { mode: 0o600 });
       await this.connect(daemon);
+      this.options.hostingChanged?.();
       return { ok: true };
     } catch (error) {
       if (error instanceof PrerequisiteError) return { ok: false, message: error.message };
@@ -67,16 +70,8 @@ export class HostController {
   }
 
   async resume(): Promise<boolean> {
-    let current: CurrentSession;
-    try {
-      current = JSON.parse(await readFile(this.options.stateFile, 'utf8')) as CurrentSession;
-    } catch {
-      return false;
-    }
-    if (!isRunning(current.pid)) {
-      await rm(this.options.stateFile, { force: true });
-      return false;
-    }
+    const current = await this.current();
+    if (!current) return false;
     try {
       await this.connect(current);
       return true;
@@ -101,6 +96,30 @@ export class HostController {
     connection.send({ type: 'close-session' });
     await ended;
     await rm(this.options.stateFile, { force: true });
+    this.options.hostingChanged?.();
+  }
+
+  /**
+   * Whether a hosted session is running, with or without a window attached. The daemon runs on
+   * this app's binary, so nothing may replace that binary (an update) while this is true.
+   */
+  async isHosting(): Promise<boolean> {
+    return (await this.current()) !== undefined;
+  }
+
+  /** The remembered session if its daemon still runs; forgets one whose daemon has stopped. */
+  private async current(): Promise<CurrentSession | undefined> {
+    let current: CurrentSession;
+    try {
+      current = JSON.parse(await readFile(this.options.stateFile, 'utf8')) as CurrentSession;
+    } catch {
+      return undefined;
+    }
+    if (!isRunning(current.pid)) {
+      await rm(this.options.stateFile, { force: true });
+      return undefined;
+    }
+    return current;
   }
 
   /** Disconnects the window from the daemon without ending the session. */
@@ -113,11 +132,15 @@ export class HostController {
     this.connection?.close();
     const connection = await connectLocal(daemon.endpoint, await readFile(daemon.tokenFile, 'utf8'));
     this.connection = connection;
-    connection.onMessage((message) => this.options.emit(message as HostEvent));
+    connection.onMessage((message) => {
+      this.options.emit(message as HostEvent);
+      if (message.type === 'session-ended') this.options.hostingChanged?.();
+    });
     connection.onClose(() => {
       if (this.connection !== connection) return;
       this.connection = undefined;
       this.options.emit({ type: 'disconnected' });
+      this.options.hostingChanged?.();
     });
   }
 }

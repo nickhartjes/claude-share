@@ -1,6 +1,6 @@
-import { createSessionKeys } from '@claude-share/protocol';
-import { ViewerConnection, type ViewerState } from '@claude-share/protocol/viewer';
-import { turnCredentials } from '@claude-share/signalling/turn-credentials';
+import { createSessionKeys } from '@specdeck/protocol';
+import { ViewerConnection, type ViewerState } from '@specdeck/protocol/viewer';
+import { turnCredentials } from '@specdeck/signalling/turn-credentials';
 import nodeDataChannel from 'node-datachannel';
 import { RTCPeerConnection as PolyfillPeerConnection } from 'node-datachannel/polyfill';
 import { afterAll, afterEach, describe, expect, it } from 'vitest';
@@ -12,9 +12,9 @@ import { FakePty, headlessTerminal } from './test-support.ts';
 
 // Runs against a deployed signalling service and coturn: `just local-test` deploys them to the
 // local cluster (deploy/k8s/local) and runs this file inside the cluster's network.
-const signallingUrl = process.env['CLAUDE_SHARE_CLUSTER_SIGNALLING_URL'];
-const turnUrl = process.env['CLAUDE_SHARE_CLUSTER_TURN_URL'] ?? '';
-const turnSecret = process.env['CLAUDE_SHARE_CLUSTER_TURN_SECRET'] ?? '';
+const signallingUrl = process.env['SPECDECK_CLUSTER_SIGNALLING_URL'];
+const turnUrl = process.env['SPECDECK_CLUSTER_TURN_URL'] ?? '';
+const turnSecret = process.env['SPECDECK_CLUSTER_TURN_SECRET'] ?? '';
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 async function until<T>(check: () => T | undefined | false, what: string, timeoutMs = 20_000): Promise<T> {

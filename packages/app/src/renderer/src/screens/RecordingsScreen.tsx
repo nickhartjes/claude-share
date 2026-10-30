@@ -1,4 +1,4 @@
-import type { Recording, RecordingSummary } from '@claude-share/protocol';
+import type { Recording, RecordingSummary } from '@specdeck/protocol';
 import { useEffect, useState } from 'react';
 import type { RecordingsApi } from '../../../shared/bridge';
 import { StatusBar } from '../components/SessionParts';
@@ -21,9 +21,16 @@ export function RecordingsScreen({ recordings, onReplay, onBack }: RecordingsScr
   const [list, setList] = useState<RecordingSummary[] | undefined>();
   const [message, setMessage] = useState<string | undefined>();
   const [confirm, setConfirm] = useState<{ kind: 'delete' | 'export'; id: string } | undefined>();
+  const [renaming, setRenaming] = useState<{ id: string; title: string } | undefined>();
 
   const refresh = () => void recordings.list().then(setList);
   useEffect(refresh, [recordings]);
+
+  const rename = async (id: string, title: string) => {
+    setRenaming(undefined);
+    await recordings.rename(id, title);
+    refresh();
+  };
 
   const open = async (result: Promise<Awaited<ReturnType<RecordingsApi['open']>>>) => {
     const outcome = await result;
@@ -37,7 +44,7 @@ export function RecordingsScreen({ recordings, onReplay, onBack }: RecordingsScr
         <button onClick={onBack}>Back</button>
         <h1 style={{ margin: 0 }}>Saved sessions</h1>
         <button style={{ marginLeft: 'auto' }} onClick={() => void open(recordings.openFile())}>
-          Open a .ccsession file…
+          Open a .specdeck file…
         </button>
       </div>
       {message && (
@@ -47,9 +54,34 @@ export function RecordingsScreen({ recordings, onReplay, onBack }: RecordingsScr
       )}
       {list?.length === 0 && <p className="muted">No saved sessions yet. Sessions you host are saved here.</p>}
       {list?.map((recording) => (
-        <section key={recording.id} className="card" aria-label={`Recording from ${new Date(recording.startedAt).toLocaleString()}`}>
+        <section key={recording.id} className="card" aria-label={recording.title}>
+          {renaming?.id === recording.id ? (
+            <form
+              className="row"
+              onSubmit={(e) => {
+                e.preventDefault();
+                void rename(recording.id, renaming.title);
+              }}
+            >
+              <input
+                aria-label="Title"
+                value={renaming.title}
+                maxLength={200}
+                onChange={(e) => setRenaming({ id: recording.id, title: e.target.value })}
+                autoFocus
+              />
+              <button className="primary" type="submit">
+                Save
+              </button>
+              <button type="button" onClick={() => setRenaming(undefined)}>
+                Cancel
+              </button>
+            </form>
+          ) : (
+            <h2>{recording.title}</h2>
+          )}
           <div className="row">
-            <strong>{new Date(recording.startedAt).toLocaleString()}</strong>
+            <span>{new Date(recording.startedAt).toLocaleString()}</span>
             <span className="muted">{formatDuration(recording.durationMs)}</span>
             {!recording.complete && <span className="badge not-run">did not end normally</span>}
           </div>
@@ -92,6 +124,8 @@ export function RecordingsScreen({ recordings, onReplay, onBack }: RecordingsScr
             <button className="primary" onClick={() => void open(recordings.open(recording.id))}>
               Replay
             </button>
+            <button onClick={() => setRenaming({ id: recording.id, title: recording.title })}>Rename</button>
+            {recording.customTitle && <button onClick={() => void rename(recording.id, '')}>Reset title</button>}
             <button onClick={() => setConfirm({ kind: 'export', id: recording.id })}>Export…</button>
             <button className="danger" onClick={() => setConfirm({ kind: 'delete', id: recording.id })}>
               Delete
@@ -132,7 +166,8 @@ export function ReplayScreen({ recording, onBack }: { recording: Recording; onBa
       header={
         <>
           <button onClick={onBack}>Back</button>
-          <strong>Replay</strong>
+          <strong>{recording.title}</strong>
+          <span className="muted">Replay</span>
           <span className="mono muted">{recording.manifest.cwd}</span>
           <span className="muted">{new Date(recording.manifest.startedAt).toLocaleString()}</span>
         </>

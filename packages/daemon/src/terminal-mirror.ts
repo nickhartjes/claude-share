@@ -1,4 +1,4 @@
-import type { TerminalSnapshot } from '@claude-share/protocol';
+import type { TerminalSnapshot } from '@specdeck/protocol';
 import serializeAddon from '@xterm/addon-serialize';
 import xtermHeadless from '@xterm/headless';
 

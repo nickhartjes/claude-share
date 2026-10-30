@@ -75,4 +75,39 @@ describe('StartScreen', () => {
     setup({ username: 'nick', error: 'Claude Code was not found.' });
     expect(screen.getByRole('alert')).toHaveTextContent('Claude Code was not found.');
   });
+
+  describe('recent folders', () => {
+    const recentFolders = ['/work/shop', 'C:\\Users\\nick\\api'];
+
+    it('shows only the folder dialog the first time', () => {
+      setup({ username: 'nick' });
+      expect(screen.queryByRole('list', { name: 'Recent folders' })).not.toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Choose a folder and start' })).toBeEnabled();
+    });
+
+    it('lists recent folders by name and path, and starts one without the dialog', async () => {
+      const onHostRecent = vi.fn();
+      const { user, chooseDirectory } = setup({ username: 'nick', recentFolders, onHostRecent });
+      const list = screen.getByRole('list', { name: 'Recent folders' });
+      expect(list).toHaveTextContent('shop/work/shop');
+      expect(list).toHaveTextContent('apiC:\\Users\\nick\\api');
+      await user.click(screen.getByRole('button', { name: /^shop/ }));
+      expect(onHostRecent).toHaveBeenCalledWith('/work/shop');
+      expect(chooseDirectory).not.toHaveBeenCalled();
+    });
+
+    it('removes a folder from the list', async () => {
+      const onForgetFolder = vi.fn();
+      const onHostRecent = vi.fn();
+      const { user } = setup({ username: 'nick', recentFolders, onForgetFolder, onHostRecent });
+      await user.click(screen.getByRole('button', { name: 'Remove api from recent folders' }));
+      expect(onForgetFolder).toHaveBeenCalledWith('C:\\Users\\nick\\api');
+      expect(onHostRecent).not.toHaveBeenCalled();
+    });
+
+    it('needs a username before starting from a recent folder', () => {
+      setup({ recentFolders });
+      expect(screen.getByRole('button', { name: /^shop/ })).toBeDisabled();
+    });
+  });
 });

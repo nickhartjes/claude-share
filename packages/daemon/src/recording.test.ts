@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { chmod, mkdir, mkdtemp, readdir, readFile, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import type { TimelineEvent } from '@claude-share/protocol';
+import type { TimelineEvent } from '@specdeck/protocol';
 import { zipSync } from 'fflate';
 import { describe, expect, it } from 'vitest';
 import { launchDaemon } from './launcher.ts';
@@ -16,6 +16,8 @@ import {
   Recorder,
   RECORDING_FORMAT_VERSION,
   RecordingFormatError,
+  renameRecording,
+  titleFromPrompt,
 } from './recording.ts';
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -135,11 +137,101 @@ describe('listing and deleting recordings', () => {
   });
 });
 
-describe('exporting and opening recordings', () => {
-  it('round-trips a recording through a single .ccsession file', async () => {
+describe('recording titles', () => {
+  const promptEvent = (seq: number, text: string) => ({ seq, event: { ...prompt, promptId: `p${seq}`, text } });
+
+  it('takes the first non-empty line of the first prompt, shortened to fit a list', () => {
+    expect(titleFromPrompt('Fix the login redirect after password reset')).toBe('Fix the login redirect after password reset');
+    expect(titleFromPrompt('\n  Fix   the redirect\nand the tests')).toBe('Fix the redirect');
+    const long = titleFromPrompt('word '.repeat(40));
+    expect(long).toHaveLength(80);
+    expect(long.endsWith('…')).toBe(true);
+    expect(titleFromPrompt(undefined)).toBe('No prompts');
+    expect(titleFromPrompt('  \n ')).toBe('No prompts');
+  });
+
+  it('lists each recording with the title from its first prompt, also while the session runs', async () => {
+    const root = await tempDir('cs-root-');
+    await recordSample(join(root, 'done'), 1_000);
+    const running = await Recorder.create(join(root, 'running'), meta(2_000));
+    running.event(0, { ...prompt, text: 'Second session' });
+    await sleep(1_200); // the recorder flushes once a second
+    await Recorder.create(join(root, 'empty'), meta(3_000));
+
+    const list = await listRecordings(root);
+    expect(list.map((r) => [r.id, r.title, r.customTitle])).toEqual([
+      ['empty', 'No prompts', false],
+      ['running', 'Second session', false],
+      ['done', 'hello', false],
+    ]);
+    await running.finish();
+  });
+
+  it('reads only up to the first prompt', async () => {
+    const root = await tempDir('cs-root-');
+    await recordSample(join(root, 'one'));
+    const lines = [promptEvent(0, 'First'), promptEvent(1, 'Second')].map((e) => JSON.stringify(e)).join('\n');
+    // Anything after the first prompt is never parsed, so damage there does not matter.
+    await writeFile(join(root, 'one', 'events.jsonl'), `${lines}\n{damaged`);
+    expect((await listRecordings(root))[0]?.title).toBe('First');
+  });
+
+  it('renames a recording, and clearing the title brings back the derived one', async () => {
+    const root = await tempDir('cs-root-');
+    const dir = join(root, 'one');
+    await recordSample(dir);
+
+    await renameRecording(dir, '  Login   redirect fix ');
+    expect((await listRecordings(root))[0]).toMatchObject({ title: 'Login redirect fix', customTitle: true });
+    expect((await readRecording(dir)).title).toBe('Login redirect fix');
+
+    await renameRecording(dir, '   ');
+    expect((await listRecordings(root))[0]).toMatchObject({ title: 'hello', customTitle: false });
+    expect((await readRecording(dir)).manifest.title).toBeUndefined();
+  });
+
+  it('caps a title at 200 characters', async () => {
     const dir = await tempDir('cs-rec-');
     await recordSample(dir);
-    const file = join(await tempDir('cs-export-'), 'session.ccsession');
+    await renameRecording(dir, 'x'.repeat(500));
+    expect((await readRecording(dir)).title).toHaveLength(200);
+  });
+
+  it('keeps a title set while the session runs when the session ends', async () => {
+    const dir = await tempDir('cs-rec-');
+    const recorder = await Recorder.create(dir, meta());
+    await renameRecording(dir, 'Renamed live');
+    await recorder.finish(5_000);
+    expect((await readRecording(dir)).manifest).toMatchObject({ title: 'Renamed live', endedAt: 5_000 });
+  });
+
+  it('keeps the title in an export, and derives one for an export without it', async () => {
+    const dir = await tempDir('cs-rec-');
+    await recordSample(dir);
+    const plain = join(await tempDir('cs-export-'), 'plain.specdeck');
+    await exportRecording(dir, plain);
+    expect((await readRecordingFile(plain)).title).toBe('hello');
+
+    await renameRecording(dir, 'Login redirect fix');
+    const named = join(await tempDir('cs-export-'), 'named.specdeck');
+    await exportRecording(dir, named);
+    expect((await readRecordingFile(named)).title).toBe('Login redirect fix');
+  });
+
+  it('opens a manifest with fields it does not know', async () => {
+    const dir = await tempDir('cs-rec-');
+    await recordSample(dir);
+    const manifest = JSON.parse(await readFile(join(dir, 'manifest.json'), 'utf8'));
+    await writeFile(join(dir, 'manifest.json'), JSON.stringify({ ...manifest, futureField: 1 }));
+    expect((await readRecording(dir)).title).toBe('hello');
+  });
+});
+
+describe('exporting and opening recordings', () => {
+  it('round-trips a recording through a single .specdeck file', async () => {
+    const dir = await tempDir('cs-rec-');
+    await recordSample(dir);
+    const file = join(await tempDir('cs-export-'), 'session.specdeck');
     await exportRecording(dir, file);
     expect(await readRecordingFile(file)).toEqual(await readRecording(dir));
   });
@@ -149,7 +241,7 @@ describe('exporting and opening recordings', () => {
     await recordSample(dir);
     await writeFile(join(dir, 'token'), 'secret');
     await writeFile(join(dir, 'hook-settings.json'), '{}');
-    const file = join(await tempDir('cs-export-'), 'session.ccsession');
+    const file = join(await tempDir('cs-export-'), 'session.specdeck');
     await exportRecording(dir, file);
     const { unzipSync } = await import('fflate');
     const names = Object.keys(unzipSync(new Uint8Array(await readFile(file))));
@@ -157,20 +249,20 @@ describe('exporting and opening recordings', () => {
   });
 
   it('refuses a file that is not a recording, with a reason', async () => {
-    const file = join(await tempDir('cs-export-'), 'notes.ccsession');
+    const file = join(await tempDir('cs-export-'), 'notes.specdeck');
     await writeFile(file, 'just some text');
     await expect(readRecordingFile(file)).rejects.toThrow(RecordingFormatError);
-    await expect(readRecordingFile(file)).rejects.toThrow(/not a valid \.ccsession file/);
+    await expect(readRecordingFile(file)).rejects.toThrow(/not a valid \.specdeck file/);
   });
 
   it('refuses a zip without a manifest', async () => {
-    const file = join(await tempDir('cs-export-'), 'empty.ccsession');
+    const file = join(await tempDir('cs-export-'), 'empty.specdeck');
     await writeFile(file, zipSync({ 'readme.txt': new TextEncoder().encode('hi') }));
     await expect(readRecordingFile(file)).rejects.toThrow(/no manifest/);
   });
 
   it('refuses a recording from a newer app version and says to update', async () => {
-    const file = join(await tempDir('cs-export-'), 'future.ccsession');
+    const file = join(await tempDir('cs-export-'), 'future.specdeck');
     const manifest = { ...meta(), formatVersion: RECORDING_FORMAT_VERSION + 1 };
     await writeFile(file, zipSync({ 'manifest.json': new TextEncoder().encode(JSON.stringify(manifest)) }));
     await expect(readRecordingFile(file)).rejects.toThrow(/newer version of the app/);

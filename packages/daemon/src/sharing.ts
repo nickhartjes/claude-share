@@ -16,8 +16,8 @@ import {
   type InviteSecrets,
   type Participant,
   type ViewerMessage,
-} from '@claude-share/protocol';
-import type { ClaudeStatus, SharingState } from '@claude-share/protocol';
+} from '@specdeck/protocol';
+import type { ClaudeStatus, SharingState } from '@specdeck/protocol';
 
 export type { ClaudeStatus, SharingState };
 import type { StreamHub, ViewerFeed } from './stream-hub.ts';

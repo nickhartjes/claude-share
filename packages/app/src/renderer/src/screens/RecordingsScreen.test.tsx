@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import type { Recording, RecordingSummary } from '@claude-share/protocol';
+import type { Recording, RecordingSummary } from '@specdeck/protocol';
 import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -16,6 +16,8 @@ const { RecordingsScreen, ReplayScreen } = await import('./RecordingsScreen');
 const summary = (id: string, overrides: Partial<RecordingSummary> = {}): RecordingSummary => ({
   id,
   dir: `/data/sessions/${id}`,
+  title: `Session ${id}`,
+  customTitle: false,
   cwd: '/work/project',
   startedAt: Date.UTC(2026, 9, 28, 9, 0),
   durationMs: 45 * 60_000,
@@ -25,6 +27,7 @@ const summary = (id: string, overrides: Partial<RecordingSummary> = {}): Recordi
 
 const recording: Recording = {
   manifest: { formatVersion: 1, appVersion: '1.0.0', sessionId: 's', cwd: '/work/project', cols: 100, rows: 30, startedAt: 1, endedAt: 2 },
+  title: 'Summarise the repo',
   output: [
     { seq: 0, data: 'first\r\n' },
     { seq: 1, data: 'second\r\n' },
@@ -42,9 +45,10 @@ function fakeApi(list: RecordingSummary[]) {
   return {
     list: vi.fn(async () => list),
     delete: vi.fn(async () => {}),
+    rename: vi.fn(async () => {}),
     export: vi.fn(async () => true),
     open: vi.fn(async () => ({ ok: true as const, recording })),
-    openFile: vi.fn(async () => ({ ok: false as const, message: 'This file is not a Claude Share recording: it is not a valid .ccsession file.' })),
+    openFile: vi.fn(async () => ({ ok: false as const, message: 'This file is not a SpecDeck recording: it is not a valid .specdeck file.' })),
   } satisfies RecordingsApi;
 }
 
@@ -58,12 +62,40 @@ describe('RecordingsScreen', () => {
   }
   const card = (index: number) => screen.getAllByRole('region')[index]!;
 
-  it('lists saved sessions with their folder and duration, and flags ones that did not end normally', async () => {
+  it('lists saved sessions with their title, folder and duration, and flags ones that did not end normally', async () => {
     await setup();
     expect(screen.getAllByRole('region')).toHaveLength(2);
+    expect(within(card(0)).getByRole('heading', { name: 'Session a' })).toBeInTheDocument();
     expect(card(0)).toHaveTextContent('/work/project');
     expect(card(0)).toHaveTextContent('45 min');
     expect(card(1)).toHaveTextContent('did not end normally');
+  });
+
+  it('renames a saved session and refreshes the list', async () => {
+    const { api, user } = await setup();
+    await user.click(within(card(0)).getByRole('button', { name: 'Rename' }));
+    const input = within(card(0)).getByRole('textbox', { name: 'Title' });
+    expect(input).toHaveValue('Session a');
+    await user.clear(input);
+    await user.type(input, 'Login redirect fix{Enter}');
+    expect(api.rename).toHaveBeenCalledWith('a', 'Login redirect fix');
+    await waitFor(() => expect(api.list).toHaveBeenCalledTimes(2));
+    expect(within(card(0)).queryByRole('textbox')).not.toBeInTheDocument();
+  });
+
+  it('cancels renaming without changing anything', async () => {
+    const { api, user } = await setup();
+    await user.click(within(card(0)).getByRole('button', { name: 'Rename' }));
+    await user.click(within(card(0)).getByRole('button', { name: 'Cancel' }));
+    expect(api.rename).not.toHaveBeenCalled();
+    expect(within(card(0)).getByRole('heading', { name: 'Session a' })).toBeInTheDocument();
+  });
+
+  it('offers to reset only a title the host set', async () => {
+    const { api, user } = await setup([summary('a'), summary('b', { title: 'Login redirect fix', customTitle: true })]);
+    expect(within(card(0)).queryByRole('button', { name: 'Reset title' })).not.toBeInTheDocument();
+    await user.click(within(card(1)).getByRole('button', { name: 'Reset title' }));
+    expect(api.rename).toHaveBeenCalledWith('b', '');
   });
 
   it('says when there are none', async () => {
@@ -98,13 +130,20 @@ describe('RecordingsScreen', () => {
 
   it('explains why a file cannot be opened', async () => {
     const { onReplay, user } = await setup();
-    await user.click(screen.getByRole('button', { name: 'Open a .ccsession file…' }));
-    expect(await screen.findByRole('alert')).toHaveTextContent('not a valid .ccsession file');
+    await user.click(screen.getByRole('button', { name: 'Open a .specdeck file…' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('not a valid .specdeck file');
     expect(onReplay).not.toHaveBeenCalled();
   });
 });
 
 describe('ReplayScreen', () => {
+  it('shows the recording title, also for an opened file whose title comes from its first prompt', async () => {
+    shared.terminal = new FakeTerminal();
+    render(<ReplayScreen recording={{ ...recording, title: 'Login redirect fix' }} onBack={vi.fn()} />);
+    await act(flush);
+    expect(screen.getByText('Login redirect fix')).toBeInTheDocument();
+  });
+
   let terminal: FakeTerminal;
   beforeEach(() => {
     terminal = new FakeTerminal();
@@ -126,7 +165,7 @@ describe('ReplayScreen', () => {
       ['resize', 80, 24],
       ['write', 'third\r\n', 2],
     ]);
-    expect(screen.getByText('Summarise the repo')).toBeInTheDocument();
+    expect(screen.getAllByText('Summarise the repo').length).toBeGreaterThan(0);
     expect(screen.getByRole('status', { name: 'Session status' })).toHaveTextContent('Replay of a saved session');
   });
 });

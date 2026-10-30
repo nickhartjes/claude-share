@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import type { ViewerConnectionOptions, ViewerState } from '@claude-share/protocol/viewer';
+import type { ViewerConnectionOptions, ViewerState } from '@specdeck/protocol/viewer';
 import { act, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -27,7 +27,7 @@ class FakeConnection {
     this.left = true;
   }
 }
-vi.mock('@claude-share/protocol/viewer', () => ({ ViewerConnection: FakeConnection }));
+vi.mock('@specdeck/protocol/viewer', () => ({ ViewerConnection: FakeConnection }));
 
 const { ViewerScreen } = await import('./ViewerScreen');
 const connection = () => shared.connection as FakeConnection;
@@ -100,7 +100,7 @@ describe('ViewerScreen', () => {
   it('returns to the start screen with the reason when joining fails', async () => {
     const { onFailed } = await setup();
     act(() => connection().options.onState({ kind: 'failed', reason: 'session-full', message: 'This session is full.' }));
-    expect(onFailed).toHaveBeenCalledWith('This session is full.');
+    expect(onFailed).toHaveBeenCalledWith('This session is full.', 'session-full');
   });
 
   it('stays and explains when removed after joining', async () => {

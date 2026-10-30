@@ -1,4 +1,4 @@
-import { StreamReader, type TimelineEvent, type Verifier } from '@claude-share/protocol';
+import { StreamReader, type TimelineEvent, type Verifier } from '@specdeck/protocol';
 
 /** The parts of an xterm.js terminal a viewer uses. */
 export interface ViewerTerminal {

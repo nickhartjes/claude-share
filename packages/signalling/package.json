@@ -1,5 +1,5 @@
 {
-  "name": "@claude-share/signalling",
+  "name": "@specdeck/signalling",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -9,7 +9,7 @@
     "start": "node dist/main.js"
   },
   "dependencies": {
-    "@claude-share/protocol": "workspace:*",
+    "@specdeck/protocol": "workspace:*",
     "ws": "^8.22.0"
   },
   "devDependencies": {

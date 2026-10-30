@@ -1,5 +1,5 @@
 {
-  "name": "@claude-share/daemon",
+  "name": "@specdeck/daemon",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -7,7 +7,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@claude-share/protocol": "workspace:*",
+    "@specdeck/protocol": "workspace:*",
     "@xterm/addon-serialize": "^0.14.0",
     "@xterm/headless": "^6.0.0",
     "fflate": "^0.8.3",
@@ -16,7 +16,7 @@
     "zod": "^4.6.7"
   },
   "devDependencies": {
-    "@claude-share/signalling": "workspace:*"
+    "@specdeck/signalling": "workspace:*"
   },
   "exports": {
     ".": "./src/index.ts",

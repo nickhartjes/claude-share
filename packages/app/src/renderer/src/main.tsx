@@ -10,6 +10,6 @@ const root = document.getElementById('root');
 if (!root) throw new Error('Missing #root element');
 createRoot(root).render(
   <StrictMode>
-    <App bridge={window.claudeShare} />
+    <App bridge={window.specDeck} />
   </StrictMode>,
 );

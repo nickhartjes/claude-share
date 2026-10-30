@@ -6,7 +6,7 @@ import {
   ProtocolError,
   type SignallingErrorReason,
   type SignallingEvent,
-} from '@claude-share/protocol';
+} from '@specdeck/protocol';
 import { WebSocket, WebSocketServer } from 'ws';
 import { RateLimiter } from './rate-limiter.ts';
 import { turnCredentials, type TurnConfig } from './turn-credentials.ts';

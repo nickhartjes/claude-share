@@ -1,5 +1,5 @@
 import { randomBytes } from 'node:crypto';
-import { decodeSignallingEvent, type SignallingEvent, type SignallingRequest } from '@claude-share/protocol';
+import { decodeSignallingEvent, type SignallingEvent, type SignallingRequest } from '@specdeck/protocol';
 import { afterEach, describe, expect, it } from 'vitest';
 import { WebSocket } from 'ws';
 import { startSignallingServer, type SignallingConfig, type SignallingServer } from './server.ts';

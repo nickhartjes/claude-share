@@ -37,16 +37,18 @@ describe.skipIf(process.platform === 'win32')('HostController', () => {
 
   function controller({ username }: { username: string | undefined } = { username: 'nick' }) {
     const events: HostEvent[] = [];
+    let hostingChanges = 0;
     const host = new HostController({
       sessionsDir: join(dataDir, 'sessions'),
       stateFile: join(dataDir, 'current-session.json'),
       daemonEntry: join(import.meta.dirname, '../../../daemon/src/main.ts'),
       emit: (event) => events.push(event),
       settings: async () => ({ username, signallingUrl: undefined }),
+      hostingChanged: () => hostingChanges++,
     });
     controllers.push(host);
     const text = () => events.map((e) => ('data' in e ? e.data : '')).join('');
-    return { host, events, text };
+    return { host, events, text, hostingChanges: () => hostingChanges };
   }
 
   it('starts a session and relays the terminal both ways', async () => {
@@ -83,6 +85,28 @@ describe.skipIf(process.platform === 'win32')('HostController', () => {
     await until(() => first.events.some((e) => e.type === 'snapshot'), 'snapshot');
     await first.host.close();
     expect(await controller().host.resume()).toBe(false);
+  });
+
+  it('is hosting while the daemon runs, also with the window detached, and not after the session ends', async () => {
+    const { host, hostingChanges } = controller();
+    expect(await host.isHosting()).toBe(false);
+    await host.start(dataDir, { cols: 80, rows: 24 });
+    expect(await host.isHosting()).toBe(true);
+    expect(hostingChanges()).toBe(1);
+
+    host.detach();
+    const window = controller();
+    expect(await window.host.isHosting()).toBe(true);
+
+    await window.host.resume();
+    await window.host.close();
+    expect(await window.host.isHosting()).toBe(false);
+    expect(window.hostingChanges()).toBeGreaterThanOrEqual(1);
+  });
+
+  it('is not hosting when the remembered daemon has stopped', async () => {
+    await writeFile(join(dataDir, 'current-session.json'), JSON.stringify({ pid: 2 ** 22 + 12345, endpoint: 'x', tokenFile: 'y', sessionId: 's' }));
+    expect(await controller().host.isHosting()).toBe(false);
   });
 
   it('reports a missing Claude Code installation', async () => {

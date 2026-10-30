@@ -1,5 +1,5 @@
-import type { ClaudeStatus, Participant } from '@claude-share/protocol';
-import { ViewerConnection, type ViewerState } from '@claude-share/protocol/viewer';
+import type { ClaudeStatus, Participant } from '@specdeck/protocol';
+import { ViewerConnection, type FailureReason, type ViewerState } from '@specdeck/protocol/viewer';
 import { useEffect, useRef, useState } from 'react';
 import { ParticipantsList, StatusBar, type ConnectionLabel } from '../components/SessionParts';
 import { SessionView } from '../components/SessionView';
@@ -11,7 +11,7 @@ export interface ViewerScreenProps {
   code: string;
   username: string;
   /** Joining failed; `message` says why. */
-  onFailed(message: string): void;
+  onFailed(message: string, reason: FailureReason): void;
   onLeave(): void;
   /** For tests: a different peer connection or WebSocket implementation. */
   createPeerConnection?(config: RTCConfiguration): RTCPeerConnection;
@@ -45,7 +45,7 @@ export function ViewerScreen({ signallingUrl, code, username, onFailed, onLeave,
       onState: (next) => {
         setState(next);
         if (next.kind === 'live') wasLive.current = true;
-        if (next.kind === 'failed' && !wasLive.current) callbacks.current.onFailed(next.message);
+        if (next.kind === 'failed' && !wasLive.current) callbacks.current.onFailed(next.message, next.reason);
       },
       onEvent: (_, event) => setTimeline((current) => applyEvent(current, event)),
       onParticipants: (list, self) => setParticipants({ list, self }),

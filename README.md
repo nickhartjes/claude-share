@@ -1,6 +1,6 @@
-# Claude Share
+# SpecDeck
 
-Claude Share lets one person (the **host**) run Claude Code on their computer while teammates (the **viewers**) follow along from anywhere. Viewers see the terminal, every prompt and answer, the tools Claude uses and the diffs of the files it changes. They join with an invite code and are read-only: only the host types into Claude Code, on the host's own Claude login.
+SpecDeck lets one person (the **host**) run Claude Code on their computer while teammates (the **viewers**) follow along from anywhere. Viewers see the terminal, every prompt and answer, the tools Claude uses and the diffs of the files it changes. They join with an invite code and are read-only: only the host types into Claude Code, on the host's own Claude login.
 
 How to use the app: [docs/user-guide.md](docs/user-guide.md).
 
@@ -54,7 +54,9 @@ Run `just` to list all recipes. Others worth knowing:
 ## CI and releases
 
 - [`ci.yml`](.github/workflows/ci.yml) runs the checks on macOS, Windows and in the Linux container, then packages the app, on pushes to `main` and on pull requests.
-- [`release.yml`](.github/workflows/release.yml) builds and signs the installers when a `v*` tag is pushed, and attaches them to the workflow run. It needs the signing certificates, notarization key and signalling URL as repository secrets (listed at the top of the file); these are not set up yet.
+- [`release.yml`](.github/workflows/release.yml) builds and signs the installers when a `v*` tag is pushed. It publishes them, with the update metadata (`latest*.yml`), to this repository's [GitHub Releases](https://github.com/nickhartjes/specdeck/releases), where installed apps look for updates. The release stays a draft until every platform has uploaded. The tag must match the version in `packages/app/package.json`, and a tag with a suffix such as `v0.2.0-rc.1` becomes a prerelease. The workflow uses these repository secrets (listed at the top of the file), which are not set up yet:
+  - the signing certificates and notarization key; until they exist, the installers are unsigned;
+  - the signalling URL.
 
 ## Status
 

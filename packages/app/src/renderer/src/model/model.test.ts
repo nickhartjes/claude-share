@@ -1,4 +1,4 @@
-import type { TimelineEvent } from '@claude-share/protocol';
+import type { TimelineEvent } from '@specdeck/protocol';
 import { describe, expect, it } from 'vitest';
 import { followAgain, initialFollow, onJump, onOutput, onScroll } from './follow';
 import { PositionIndex } from './position-index';

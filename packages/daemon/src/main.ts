@@ -2,7 +2,7 @@
 import { mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { parseArgs } from 'node:util';
-import { createSessionKeys, type TimelineEvent } from '@claude-share/protocol';
+import { createSessionKeys, type TimelineEvent } from '@specdeck/protocol';
 import { checkPrerequisites, PrerequisiteError, startClaude } from './claude-process.ts';
 import { startHookEndpoint } from './hook-endpoint.ts';
 import { HOOK_TOKEN_ENV, writeHookSettings } from './hook-settings.ts';

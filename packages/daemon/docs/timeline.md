@@ -10,9 +10,9 @@ claude (PTY) --HTTP hooks--> hook endpoint --> TimelineService --> StreamHub -->
 ```
 
 1. **Settings.** At start-up the daemon writes `hook-settings.json` into the session directory (`hook-settings.ts`) and starts Claude Code with `--settings <file>`. The user's and project's own settings still apply; the spike confirmed hooks from all sources are merged.
-2. **Transport.** Each hook is an HTTP hook to the daemon's endpoint (`hook-endpoint.ts`): `POST http://127.0.0.1:<random port>/hooks`, header `Authorization: Bearer $CLAUDE_SHARE_HOOK_TOKEN`. The daemon sets `CLAUDE_SHARE_HOOK_TOKEN` on the Claude Code process, and `allowedEnvVars` lets Claude Code put it in the header, so the token is never written to disk.
+2. **Transport.** Each hook is an HTTP hook to the daemon's endpoint (`hook-endpoint.ts`): `POST http://127.0.0.1:<random port>/hooks`, header `Authorization: Bearer $SPECDECK_HOOK_TOKEN`. The daemon sets `SPECDECK_HOOK_TOKEN` on the Claude Code process, and `allowedEnvVars` lets Claude Code put it in the header, so the token is never written to disk.
 3. **Response.** The endpoint answers `204` with an empty body at once, so it never influences Claude's decisions. Hook timeout is 5 seconds. HTTP hook failures are non-blocking, so an unreachable daemon never stops Claude Code.
-4. **Conversion.** `TimelineBuilder` validates each payload and turns it into `TimelineEvent`s (`@claude-share/protocol`), stamped with the current terminal output sequence number.
+4. **Conversion.** `TimelineBuilder` validates each payload and turns it into `TimelineEvent`s (`@specdeck/protocol`), stamped with the current terminal output sequence number.
 5. **Delivery.** `StreamHub.publishEvent` signs each event once and sends it to every viewer. All events are kept, so a late joiner gets the full timeline.
 
 ## Events
@@ -61,7 +61,7 @@ The integration relies on HTTP hooks, `MessageDisplay`, `PostToolUseFailure`, `p
 To check a new version, run the live test, which starts a real `claude -p`:
 
 ```sh
-CLAUDE_SHARE_LIVE_TESTS=1 pnpm vitest run packages/daemon/src/hook-settings.test.ts
+SPECDECK_LIVE_TESTS=1 pnpm vitest run packages/daemon/src/hook-settings.test.ts
 ```
 
 ## Tests

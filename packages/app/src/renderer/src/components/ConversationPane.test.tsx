@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import type { TimelineEvent } from '@claude-share/protocol';
+import type { TimelineEvent } from '@specdeck/protocol';
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';

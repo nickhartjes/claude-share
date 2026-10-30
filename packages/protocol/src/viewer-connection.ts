@@ -18,7 +18,10 @@ export type FailureReason =
   | 'invalid-code'
   | 'rate-limited'
   | 'session-full'
-  | 'outdated'
+  /** This viewer's app is older than the host's: updating it fixes the problem. */
+  | 'viewer-outdated'
+  /** The host's app is older: only the host can fix it. */
+  | 'host-outdated'
   | 'removed'
   | 'unreachable'
   | 'connection-failed';
@@ -328,7 +331,7 @@ export class ViewerConnection {
               ? 'removed'
               : message.reason === 'session-ended'
                 ? 'invalid-code'
-                : 'outdated';
+                : message.reason;
         if (this.everLive) {
           this.fail(reason, message.message);
           return;
@@ -380,7 +383,7 @@ export class ViewerConnection {
           this.reconnecting = false;
           return this.end();
         }
-        if (error.reason === 'removed' || error.reason === 'session-full' || error.reason === 'outdated') {
+        if (error.reason === 'removed' || error.reason === 'session-full' || error.reason.endsWith('-outdated')) {
           this.reconnecting = false;
           this.fail(error.reason, error.message);
           return;

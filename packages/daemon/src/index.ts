@@ -9,6 +9,7 @@ export {
   readRecording,
   readRecordingFile,
   RecordingFormatError,
+  renameRecording,
   type Recording,
   type RecordingSummary,
   type TerminalResize,

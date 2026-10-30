@@ -1,4 +1,4 @@
-import type { DiffHunk, TimelineEvent, ToolStatus } from '@claude-share/protocol';
+import type { DiffHunk, TimelineEvent, ToolStatus } from '@specdeck/protocol';
 
 // Turns the stream of timeline events into what the timeline and files panes show. Pure functions:
 // `applyEvent` returns a new state, so React can render it directly.

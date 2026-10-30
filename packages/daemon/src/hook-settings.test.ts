@@ -70,8 +70,8 @@ describe('hook settings', () => {
     expect(new Set(received.map((p) => p.hook_event_name))).toEqual(new Set(HOOK_EVENTS));
   });
 
-  // Runs Claude Code for real (uses the account it is logged in with). Opt in with CLAUDE_SHARE_LIVE_TESTS=1.
-  it.runIf(process.env['CLAUDE_SHARE_LIVE_TESTS'] === '1')(
+  // Runs Claude Code for real (uses the account it is logged in with). Opt in with SPECDECK_LIVE_TESTS=1.
+  it.runIf(process.env['SPECDECK_LIVE_TESTS'] === '1')(
     'receives the hooks of a real Claude Code run',
     async () => {
       const received: HookPayload[] = [];

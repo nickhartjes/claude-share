@@ -1,7 +1,6 @@
 # Desktop packages for macOS (dmg), Windows (nsis) and Linux (AppImage, deb).
-# "Claude Share" is a working name (design.md, Open Questions).
-appId: com.entrnce.claudeshare
-productName: Claude Share
+appId: com.entrnce.specdeck
+productName: SpecDeck
 directories:
   output: release/${version}
 files:
@@ -18,13 +17,23 @@ asarUnpack:
 # node-pty and node-datachannel ship N-API prebuilds that load in Electron without rebuilding.
 npmRebuild: false
 afterPack: ./scripts/after-pack.cjs
+# Installed apps update from this repository's GitHub Releases. release.yml creates a draft,
+# uploads every platform to it, and then publishes it.
+publish:
+  provider: github
+  owner: nickhartjes
+  repo: specdeck
+  releaseType: draft
 fileAssociations:
-  - ext: ccsession
-    name: Claude Share recording
+  - ext: specdeck
+    name: SpecDeck recording
     role: Viewer
 mac:
   target:
     - target: dmg
+      arch: [arm64, x64]
+    # Updates on macOS install from the zip, not the dmg.
+    - target: zip
       arch: [arm64, x64]
   category: public.app-category.developer-tools
   # Signed and notarized by the release workflow (.github/workflows/release.yml). Local and CI
@@ -42,9 +51,9 @@ nsis:
 linux:
   target: [AppImage, deb]
   # Defaults to the package name, whose "@" and "/" cannot be used in a file name.
-  executableName: claude-share
+  executableName: specdeck
   category: Development
   maintainer: Entrnce
 deb:
-  # The default file name starts with the package name and would land in an "@claude-share/" folder.
-  artifactName: claude-share_${version}_${arch}.${ext}
+  # The default file name starts with the package name and would land in an "@specdeck/" folder.
+  artifactName: specdeck_${version}_${arch}.${ext}

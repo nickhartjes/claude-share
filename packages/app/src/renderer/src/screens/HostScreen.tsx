@@ -1,4 +1,4 @@
-import type { ClaudeStatus, Participant, SharingState } from '@claude-share/protocol';
+import type { ClaudeStatus, Participant, SharingState } from '@specdeck/protocol';
 import { useEffect, useRef, useState } from 'react';
 import type { Bridge, HostEvent } from '../../../shared/bridge';
 import { HostControls, ParticipantsList, StatusBar } from '../components/SessionParts';
@@ -9,7 +9,8 @@ import { applyEvent, emptyTimeline, type TimelineState } from '../model/timeline
 export interface HostScreenProps {
   bridge: Pick<Bridge, 'host'>;
   /** Start a new session in this directory, or reattach to the running one. */
-  mode: { start: string } | { resume: true };
+  /** `recent`: the folder is one of the recent folders, chosen without the folder dialog. */
+  mode: { start: string; recent?: boolean } | { resume: true };
   sharingConfigured: boolean;
   /** The session could not start; `message` says why. */
   onFailed(message: string): void;
@@ -65,7 +66,8 @@ export function HostScreen({ bridge, mode, sharingConfigured, onFailed, onEnded 
         if (!ok) callbacks.current.onFailed('The session is no longer running.');
       });
     } else {
-      void bridge.host.start(mode.start, { cols, rows }).then((result) => {
+      const start = mode.recent ? bridge.host.startRecent : bridge.host.start;
+      void start(mode.start, { cols, rows }).then((result) => {
         if (!result.ok) callbacks.current.onFailed(result.message);
       });
     }

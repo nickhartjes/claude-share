@@ -37,10 +37,14 @@ export interface RecordingManifest {
   rows: number;
   startedAt: number;
   endedAt?: number | undefined;
+  /** The title the host chose, if any. */
+  title?: string | undefined;
 }
 
 export interface Recording {
   manifest: RecordingManifest;
+  /** The host's title, or one from the first prompt. */
+  title: string;
   output: Array<{ seq: number; data: string }>;
   events: Array<{ seq: number; event: TimelineEvent }>;
   resizes: TerminalResize[];
@@ -50,6 +54,10 @@ export interface Recording {
 export interface RecordingSummary {
   id: string;
   dir: string;
+  /** The host's title, or one from the first prompt. */
+  title: string;
+  /** True if the host set the title; false if it comes from the first prompt. */
+  customTitle: boolean;
   cwd: string;
   startedAt: number;
   durationMs: number;

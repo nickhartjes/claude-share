@@ -1,15 +1,15 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: claude-share-turn
-  labels: { app: claude-share-turn }
+  name: specdeck-turn
+  labels: { app: specdeck-turn }
 spec:
   replicas: 1
   selector:
-    matchLabels: { app: claude-share-turn }
+    matchLabels: { app: specdeck-turn }
   template:
     metadata:
-      labels: { app: claude-share-turn }
+      labels: { app: specdeck-turn }
     spec:
       containers:
         - name: coturn
@@ -21,7 +21,7 @@ spec:
             - --min-port=49160
             - --max-port=49179
             - --external-ip=$(TURN_EXTERNAL_IP)
-            - --realm=claude-share
+            - --realm=specdeck
             # Credentials come from the signalling service (TURN REST API scheme).
             - --use-auth-secret
             - --static-auth-secret=$(TURN_SECRET)
@@ -45,9 +45,9 @@ spec:
             - name: POD_IP
               valueFrom: { fieldRef: { fieldPath: status.podIP } }
             - name: TURN_EXTERNAL_IP
-              valueFrom: { configMapKeyRef: { name: claude-share-network, key: TURN_EXTERNAL_IP } }
+              valueFrom: { configMapKeyRef: { name: specdeck-network, key: TURN_EXTERNAL_IP } }
             - name: TURN_SECRET
-              valueFrom: { secretKeyRef: { name: claude-share-turn, key: TURN_SECRET } }
+              valueFrom: { secretKeyRef: { name: specdeck-turn, key: TURN_SECRET } }
           ports:
             - { containerPort: 3478, protocol: UDP, name: turn-udp }
             - { containerPort: 3478, protocol: TCP, name: turn-tcp }
@@ -61,11 +61,11 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: claude-share-turn
+  name: specdeck-turn
 spec:
   type: LoadBalancer
   externalTrafficPolicy: Local
-  selector: { app: claude-share-turn }
+  selector: { app: specdeck-turn }
   ports:
     - { name: turn-udp, port: 3478, targetPort: 3478, protocol: UDP }
     - { name: turn-tcp, port: 3478, targetPort: 3478, protocol: TCP }

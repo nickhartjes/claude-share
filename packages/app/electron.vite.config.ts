@@ -3,7 +3,7 @@ import react from '@vitejs/plugin-react';
 import { defineConfig } from 'electron-vite';
 
 // Workspace packages are TypeScript sources: bundle them. Native modules stay external.
-const bundleWorkspace = { exclude: ['@claude-share/daemon', '@claude-share/protocol'] };
+const bundleWorkspace = { exclude: ['@specdeck/daemon', '@specdeck/protocol'] };
 
 export default defineConfig({
   main: {

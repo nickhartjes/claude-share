@@ -1,4 +1,4 @@
-# Signalling service and TURN relay for Claude Share. See packages/signalling/README.md.
+# Signalling service and TURN relay for SpecDeck. See packages/signalling/README.md.
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
@@ -6,11 +6,11 @@ resources:
   - coturn.yaml
 # Shared TURN secret; create turn-secret.env (not committed) with a line TURN_SECRET=<random value>.
 secretGenerator:
-  - name: claude-share-turn
+  - name: specdeck-turn
     envs:
       - turn-secret.env
 configMapGenerator:
-  - name: claude-share-network
+  - name: specdeck-network
     literals:
       # Public address of the TURN service, as coturn should advertise it.
       - TURN_EXTERNAL_IP=203.0.113.10

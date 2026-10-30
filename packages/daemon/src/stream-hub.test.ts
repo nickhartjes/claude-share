@@ -1,6 +1,6 @@
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { createSessionKeys, type SessionKeys } from '@claude-share/protocol';
+import { createSessionKeys, type SessionKeys } from '@specdeck/protocol';
 import { afterEach, beforeAll, describe, expect, it } from 'vitest';
 import { HostSession } from './host-session.ts';
 import { StreamHub, type StreamHubOptions } from './stream-hub.ts';

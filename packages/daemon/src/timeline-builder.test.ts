@@ -1,6 +1,6 @@
 import { readdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import type { TimelineEvent } from '@claude-share/protocol';
+import type { TimelineEvent } from '@specdeck/protocol';
 import { describe, expect, it } from 'vitest';
 import type { HookPayload } from './hook-endpoint.ts';
 import { HookPayloadError, TimelineBuilder } from './timeline-builder.ts';

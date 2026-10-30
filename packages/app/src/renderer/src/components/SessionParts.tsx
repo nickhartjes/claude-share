@@ -1,4 +1,4 @@
-import type { ClaudeStatus, Participant, SharingState } from '@claude-share/protocol';
+import type { ClaudeStatus, Participant, SharingState } from '@specdeck/protocol';
 import { useState } from 'react';
 
 const CLAUDE_LABEL: Record<ClaudeStatus, string> = {

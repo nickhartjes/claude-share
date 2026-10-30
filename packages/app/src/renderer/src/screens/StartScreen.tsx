@@ -1,5 +1,6 @@
-import { parseInviteCode } from '@claude-share/protocol';
-import { useState } from 'react';
+import { parseInviteCode } from '@specdeck/protocol';
+import { X } from 'lucide-react';
+import { useState, type ReactNode } from 'react';
 
 export interface StartScreenProps {
   username: string | undefined;
@@ -7,15 +8,40 @@ export interface StartScreenProps {
   /** Asks for a working directory; undefined if the host cancelled. */
   chooseDirectory(): Promise<string | undefined>;
   onHost(cwd: string): void;
+  /** Folders sessions were recently hosted in, newest first. */
+  recentFolders?: string[];
+  /** Starts a session in one of `recentFolders`. */
+  onHostRecent?(cwd: string): void;
+  onForgetFolder?(cwd: string): void;
   onJoin(code: string): void;
   onRecordings(): void;
   /** Why the last attempt to host or join failed. */
   error?: string | undefined;
+  /** An action that fixes the error, such as updating the app. */
+  errorAction?: ReactNode;
+  /** The app update notice, shown above everything else. */
+  notice?: ReactNode;
   busy?: boolean;
 }
 
 /** Username, then host or join (`session-hosting`: App role per session, Username). */
-export function StartScreen({ username, onSaveUsername, chooseDirectory, onHost, onJoin, onRecordings, error, busy }: StartScreenProps) {
+const folderName = (path: string) => path.split(/[\\/]/).filter(Boolean).pop() ?? path;
+
+export function StartScreen({
+  username,
+  onSaveUsername,
+  chooseDirectory,
+  onHost,
+  recentFolders = [],
+  onHostRecent,
+  onForgetFolder,
+  onJoin,
+  onRecordings,
+  error,
+  errorAction,
+  notice,
+  busy,
+}: StartScreenProps) {
   const [name, setName] = useState(username ?? '');
   const [editing, setEditing] = useState(!username);
   const [nameError, setNameError] = useState<string | undefined>();
@@ -41,7 +67,8 @@ export function StartScreen({ username, onSaveUsername, chooseDirectory, onHost,
 
   return (
     <main className="page">
-      <h1 style={{ margin: 0 }}>Claude Share</h1>
+      <h1 style={{ margin: 0 }}>SpecDeck</h1>
+      {notice}
 
       <section className="card" aria-label="Your name">
         <h2>Your name</h2>
@@ -75,6 +102,26 @@ export function StartScreen({ username, onSaveUsername, chooseDirectory, onHost,
         <p className="muted" style={{ margin: 0 }}>
           Runs Claude Code on this computer with your own login. You get an invite code to share.
         </p>
+        {recentFolders.length > 0 && (
+          <ul className="recent-folders" aria-label="Recent folders">
+            {recentFolders.map((folder) => (
+              <li key={folder} className="row">
+                <button className="recent-folder" disabled={!ready || busy} title={`Start a session in ${folder}`} onClick={() => onHostRecent?.(folder)}>
+                  <strong>{folderName(folder)}</strong>
+                  <span className="mono muted">{folder}</span>
+                </button>
+                <button
+                  className="recent-forget"
+                  aria-label={`Remove ${folderName(folder)} from recent folders`}
+                  title="Remove from recent folders"
+                  onClick={() => onForgetFolder?.(folder)}
+                >
+                  <X size={14} aria-hidden />
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
         <div className="row">
           <button
             className="primary"
@@ -107,9 +154,10 @@ export function StartScreen({ username, onSaveUsername, chooseDirectory, onHost,
       </section>
 
       {error && (
-        <p className="error" role="alert">
-          {error}
-        </p>
+        <div className="row" role="alert">
+          <span className="error">{error}</span>
+          {errorAction}
+        </div>
       )}
 
       <div>

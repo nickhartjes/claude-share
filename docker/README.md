@@ -16,7 +16,7 @@ The `check` stage copies the repository (without `node_modules`) and runs `pnpm 
 To pull from Docker Hub directly instead of ECR:
 
 ```sh
-docker build -f docker/linux.Dockerfile --build-arg REGISTRY=docker.io --target check -t claude-share-linux-check .
+docker build -f docker/linux.Dockerfile --build-arg REGISTRY=docker.io --target check -t specdeck-linux-check .
 ```
 
 ## npm registry
@@ -28,7 +28,7 @@ The network blocks `registry.npmjs.org`, so the `just` recipes build with an `np
 `deploy/k8s/local` deploys `signalling` and `coturn` to Colima's built-in k3s (`colima start --kubernetes`), with Docker Hub images and only the differences a laptop needs patched in (see the comments there).
 
 ```sh
-just local-up     # build the signalling image and deploy to namespace claude-share-local
+just local-up     # build the signalling image and deploy to namespace specdeck-local
 just local-test   # run packages/daemon/src/cluster.test.ts against it, from the Linux container
 just local-down   # remove the namespace
 ```

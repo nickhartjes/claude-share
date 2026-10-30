@@ -1,7 +1,7 @@
 import { createServer } from 'node:net';
-import { createSessionKeys, type Participant, type SessionKeys } from '@claude-share/protocol';
-import { ViewerConnection, type ViewerState } from '@claude-share/protocol/viewer';
-import { startSignallingServer, type SignallingServer } from '@claude-share/signalling/server';
+import { createSessionKeys, type Participant, type SessionKeys } from '@specdeck/protocol';
+import { ViewerConnection, type ViewerState } from '@specdeck/protocol/viewer';
+import { startSignallingServer, type SignallingServer } from '@specdeck/signalling/server';
 import nodeDataChannel from 'node-datachannel';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 import { HostSession } from './host-session.ts';
@@ -166,12 +166,12 @@ describe('sharing a session', () => {
     const { sharing } = await host();
     expect(await viewer(sharing.state.inviteCode, 'old', { protocolVersion: 0 }).connection.join()).toMatchObject({
       kind: 'failed',
-      reason: 'outdated',
+      reason: 'viewer-outdated',
       message: expect.stringContaining('Update your app'),
     });
     expect(await viewer(sharing.state.inviteCode, 'new', { protocolVersion: 99 }).connection.join()).toMatchObject({
       kind: 'failed',
-      reason: 'outdated',
+      reason: 'host-outdated',
       message: expect.stringContaining('host needs to update'),
     });
   });

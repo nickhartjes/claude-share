@@ -1,5 +1,5 @@
 {
-  "name": "@claude-share/app",
+  "name": "@specdeck/app",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -13,8 +13,8 @@
     "package:linux": "electron-vite build && electron-builder --linux"
   },
   "dependencies": {
-    "@claude-share/daemon": "workspace:*",
-    "@claude-share/protocol": "workspace:*",
+    "@specdeck/daemon": "workspace:*",
+    "@specdeck/protocol": "workspace:*",
     "@fontsource-variable/source-serif-4": "^5.3.0",
     "@xterm/addon-fit": "^0.11.0",
     "@xterm/addon-search": "^0.16.0",
@@ -22,6 +22,7 @@
     "@xterm/addon-web-links": "^0.12.0",
     "@xterm/headless": "^6.0.0",
     "@xterm/xterm": "^6.0.0",
+    "electron-updater": "^6.8.11",
     "fflate": "^0.8.3",
     "lucide-react": "^1.64.0",
     "node-datachannel": "^0.33.6",
@@ -48,6 +49,6 @@
   },
   "main": "out/main/index.js",
   "description": "Share a Claude Code session with your team",
-  "homepage": "https://github.com/nickhartjes/claude-share",
+  "homepage": "https://github.com/nickhartjes/specdeck",
   "author": "Entrnce"
 }

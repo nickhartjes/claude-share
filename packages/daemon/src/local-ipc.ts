@@ -25,8 +25,8 @@ export interface LocalConnection {
 
 /** Socket path for a session. Kept short: Unix socket paths are limited to about 100 characters. */
 export function localEndpoint(sessionId: string): string {
-  if (process.platform === 'win32') return `\\\\.\\pipe\\claude-share-${sessionId}`;
-  return join(tmpdir(), `claude-share-${sessionId}.sock`);
+  if (process.platform === 'win32') return `\\\\.\\pipe\\specdeck-${sessionId}`;
+  return join(tmpdir(), `specdeck-${sessionId}.sock`);
 }
 
 /** Creates a random token and writes it to `tokenFile`, readable only by the current user. */

@@ -1,5 +1,5 @@
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
-import { dirname } from 'node:path';
+import { mkdir, readFile, stat, writeFile } from 'node:fs/promises';
+import { dirname, resolve } from 'node:path';
 import { z } from 'zod';
 import { DEFAULT_DISPLAY_SETTINGS, type AppSettings, type DisplaySettings } from '../shared/bridge';
 
@@ -24,24 +24,49 @@ export const DisplaySettingsUpdate = z
 /** What settings.json holds. Any field may be missing (older versions) or hand-edited. */
 type StoredSettings = { [K in keyof DisplaySettings]?: DisplaySettings[K] | undefined } & {
   username?: string | undefined;
+  recentFolders?: unknown;
 };
+
+/** How many recently hosted folders the start screen lists. */
+export const MAX_RECENT_FOLDERS = 5;
+
+/**
+ * Whether two paths name the same folder. macOS and Windows volumes ignore case by default, so
+ * `~/Projects/Shop` and `~/projects/shop` are one folder there.
+ */
+export function sameFolder(a: string, b: string, platform: NodeJS.Platform = process.platform): boolean {
+  const normalize = (path: string) => {
+    const resolved = resolve(path);
+    return platform === 'darwin' || platform === 'win32' ? resolved.toLowerCase() : resolved;
+  };
+  return normalize(a) === normalize(b);
+}
+
+const isDirectory = (path: string) => stat(path).then((s) => s.isDirectory(), () => false);
 
 /** User settings in a JSON file in the app's data directory. */
 export class Settings {
   private readonly file: string;
   private pending: Promise<void> = Promise.resolve();
 
-  constructor(file: string) {
+  private readonly platform: NodeJS.Platform;
+
+  constructor(file: string, platform: NodeJS.Platform = process.platform) {
     this.file = file;
+    this.platform = platform;
   }
 
   async get(): Promise<AppSettings> {
     const stored = await this.read();
+    // A folder that is gone is left out but kept, so one on a disconnected drive comes back with it.
+    const recent = storedFolders(stored);
+    const exists = await Promise.all(recent.map(isDirectory));
     return {
       ...displaySettings(stored),
       username: stored.username,
+      recentFolders: recent.filter((_, i) => exists[i]),
       // Set at build time (MAIN_VITE_SIGNALLING_URL) or overridden by the environment.
-      signallingUrl: process.env['CLAUDE_SHARE_SIGNALLING_URL'] ?? import.meta.env.MAIN_VITE_SIGNALLING_URL,
+      signallingUrl: process.env['SPECDECK_SIGNALLING_URL'] ?? import.meta.env.MAIN_VITE_SIGNALLING_URL,
     };
   }
 
@@ -64,6 +89,26 @@ export class Settings {
     await this.change((stored) => ({ ...stored, username: trimmed }));
   }
 
+  /** Puts a folder a session was started in at the top of the recent folders. */
+  async addRecentFolder(folder: string): Promise<void> {
+    await this.change((stored) => ({
+      ...stored,
+      recentFolders: [folder, ...storedFolders(stored).filter((f) => !sameFolder(f, folder, this.platform))].slice(0, MAX_RECENT_FOLDERS),
+    }));
+  }
+
+  async forgetFolder(folder: string): Promise<void> {
+    await this.change((stored) => ({
+      ...stored,
+      recentFolders: storedFolders(stored).filter((f) => !sameFolder(f, folder, this.platform)),
+    }));
+  }
+
+  /** The stored spelling of `folder` if it is a recent folder, otherwise undefined. */
+  async recentFolder(folder: string): Promise<string | undefined> {
+    return storedFolders(await this.read()).find((f) => sameFolder(f, folder, this.platform));
+  }
+
   /** Read-modify-write, one at a time: quick successive updates (dragging a pane) must not lose each other. */
   private change(apply: (stored: StoredSettings) => StoredSettings): Promise<void> {
     const next = this.pending.then(async () => this.write(apply(await this.read())));
@@ -83,6 +128,12 @@ export class Settings {
     await mkdir(dirname(this.file), { recursive: true });
     await writeFile(this.file, JSON.stringify(settings, null, 2), { mode: 0o600 });
   }
+}
+
+/** Recent folders from a file that may be old or hand-edited. */
+function storedFolders(stored: StoredSettings): string[] {
+  const folders = stored.recentFolders;
+  return Array.isArray(folders) ? folders.filter((f): f is string => typeof f === 'string' && f.length > 0) : [];
 }
 
 /** Stored display settings with defaults for missing ones, and for invalid ones from a hand-edited file. */

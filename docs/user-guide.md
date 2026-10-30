@@ -1,14 +1,14 @@
-# Claude Share user guide
+# SpecDeck user guide
 
-Claude Share lets one person (the **host**) run Claude Code on their computer while teammates (the **viewers**) follow along from anywhere. Viewers see the terminal, every prompt and answer, the tools Claude uses and the diffs of the files it changes, and each person scrolls and searches at their own pace.
+SpecDeck lets one person (the **host**) run Claude Code on their computer while teammates (the **viewers**) follow along from anywhere. Viewers see the terminal, every prompt and answer, the tools Claude uses and the diffs of the files it changes, and each person scrolls and searches at their own pace.
 
 Viewers are read-only. Only the host types into Claude Code, and the session runs on the host's own Claude login.
 
 ## Before you start
 
 **Everyone** needs:
-- the Claude Share app for macOS, Windows or Linux (from the team's download location);
-- a network connection. Claude Share connects through the team's sharing service, so a VPN is not needed.
+- the SpecDeck app for macOS, Windows or Linux (from the team's download location);
+- a network connection. SpecDeck connects through the team's sharing service, so a VPN is not needed.
 
 **The host** also needs:
 - **Claude Code**, installed and logged in. Check by running `claude` in a terminal: it should start without asking you to log in.
@@ -26,7 +26,7 @@ Two people may use the same name; the app shows the second one as `name (2)`. Na
 
 ## Host a session
 
-1. Select **Choose a folder and start**, and pick the project folder Claude Code should work in.
+1. Select **Choose a folder and start**, and pick the project folder Claude Code should work in. Or select one of your **recent folders**, listed above that button: the last five folders you hosted in, newest first. Select **×** next to a folder to remove it from the list; the folder itself is not touched. Folders that no longer exist are not listed.
 2. Claude Code starts in the terminal on the left. Use it as you normally would.
    - The first time in a new folder, Claude Code asks whether you trust it. Answer it in the terminal; its default answer is **No, exit**.
 3. Share the **invite code** at the top, for example `7K2M-9QXH-4TPA`. Select **Copy** and send it in your huddle chat.
@@ -54,7 +54,8 @@ If joining fails, the app says why:
 |---|---|
 | The code is invalid or has expired | Check the code with the host. Codes stop working when the host closes the session or creates a new code |
 | This session is full | The host has reached their viewer limit |
-| Update your app / The host needs to update their app | Host and viewer use incompatible versions |
+| Update your app | Your app is older than the host's. Select **Restart and update** or **Download the new version** next to the message (see [Updates](#updates)) |
+| The host needs to update their app | The host's app is older than yours. The host has to update |
 | Too many attempts | Several wrong codes in a row. Wait a minute |
 | The sharing service cannot be reached | Check your connection, or try again later |
 
@@ -107,22 +108,36 @@ If your connection drops, the app reconnects on its own and fills in what you mi
 
 ## Saved sessions
 
-Sessions you host are saved on **your** computer, and only there. Select **Saved sessions** on the start screen to:
-- **Replay** a session: the same three columns, without running anything;
-- **Export** it as a `.ccsession` file to share, for example in Slack;
+Sessions you host are saved on **your** computer, and only there. Select **Saved sessions** on the start screen to see them, newest first. Each one is titled with the first line of its first prompt, or **No prompts** if nothing was asked.
+
+For each session you can:
+- **Replay** it: the same three columns, without running anything;
+- **Rename** it: type a title and select **Save**. **Reset title** goes back to the title from the first prompt;
+- **Export** it as a `.specdeck` file to share, for example in Slack. The file keeps the session's title;
 - **Delete** it.
 
 Saved sessions stay until you delete them. They are stored in:
 
 | System | Folder |
 |---|---|
-| macOS | `~/Library/Application Support/Claude Share/sessions` |
-| Windows | `%APPDATA%\Claude Share\sessions` |
-| Linux | `~/.config/Claude Share/sessions` |
+| macOS | `~/Library/Application Support/SpecDeck/sessions` |
+| Windows | `%APPDATA%\SpecDeck\sessions` |
+| Linux | `~/.config/SpecDeck/sessions` |
 
-To open an exported file, select **Open a .ccsession file…** on the **Saved sessions** screen.
+To open an exported file, select **Open a .specdeck file…** on the **Saved sessions** screen. Files exported before the app was called SpecDeck end in `.ccsession`, and open the same way.
 
 **An export contains everything from the session**, which may include source code and secrets. Only share it with people who may see that.
+
+## Updates
+
+The app checks for a new version when it starts and every few hours. When there is one, a line at the top of the start screen says so. What happens next depends on your system:
+
+| System | What the app does |
+|---|---|
+| Windows, Linux AppImage, signed macOS builds | Downloads the new version in the background. When it is ready, select **Restart and update**, or quit the app: the new version opens next time |
+| Linux `.deb`, unsigned macOS builds | Shows **Download**, which opens the download page in your browser. Install the new version as you installed this one |
+
+**An update never interrupts a session you host.** While you host, the app does not offer to restart, and quitting it leaves the session running on the current version. The update installs once the session has ended.
 
 ## Privacy and security
 

@@ -70,7 +70,7 @@ Viewer terminals discard everything xterm.js emits through `onData`, so automati
 
 The daemon starts `claude` with an extra settings file (`--settings`) that registers hooks; the spike confirmed the user's and project's own settings still apply. The hooks are **HTTP hooks** (`"type": "http"`): Claude Code POSTs each event's JSON to an endpoint the daemon serves on `127.0.0.1` with a random port.
 
-- The endpoint requires `Authorization: Bearer <token>`. The token is a per-session secret that the daemon passes to Claude Code as the environment variable `CLAUDE_SHARE_HOOK_TOKEN`; the settings file references it through `headers` and `allowedEnvVars`, so the token is never written to disk.
+- The endpoint requires `Authorization: Bearer <token>`. The token is a per-session secret that the daemon passes to Claude Code as the environment variable `SPECDECK_HOOK_TOKEN`; the settings file references it through `headers` and `allowedEnvVars`, so the token is never written to disk.
 - The endpoint answers every authorized request immediately with an empty `204`, so it never influences Claude's decisions.
 - HTTP hook failures (connection refused, non-2xx, timeout) are non-blocking by default, so an unreachable daemon never stops Claude.
 - *Alternatives*: a `command` hook that runs a bundled forwarder per event (rejected: Claude Code waits for each hook, and starting a process per event, about 0.1-0.2 s for Electron in Node mode, would slow down every message because `MessageDisplay` fires many times per turn); `async` command hooks (no process-start delay for Claude, but still one process per event).
@@ -114,7 +114,7 @@ Events are grouped per prompt by `prompt_id`. Each event is stamped with the cur
 
 ### 9. Recording format
 
-Per session, in the app's data directory (user-only permissions): `manifest.json` (format version, app version, metadata), `output.log` (length-prefixed, sequence-numbered chunks), `events.jsonl` (timeline events) and `snapshots/` (periodic snapshots for fast seeking). Files are flushed every second, so a crash loses at most about one second. Export packs the directory into one zip file with a `.ccsession` extension; import validates the manifest version before replay. Replay feeds the same renderer components as a live session from a local source instead of a peer.
+Per session, in the app's data directory (user-only permissions): `manifest.json` (format version, app version, metadata), `output.log` (length-prefixed, sequence-numbered chunks), `events.jsonl` (timeline events) and `snapshots/` (periodic snapshots for fast seeking). Files are flushed every second, so a crash loses at most about one second. Export packs the directory into one zip file with a `.specdeck` extension; import validates the manifest version before replay. Replay feeds the same renderer components as a live session from a local source instead of a peer.
 
 ### 10. Viewer UI
 
@@ -153,6 +153,6 @@ Rollback: stop distributing the app; the cluster services can be removed without
 
 ## Open Questions
 
-- Product name and file extension for exported recordings (`.ccsession` is a placeholder).
+- ~~Product name and file extension for exported recordings~~: resolved as **SpecDeck** and `.specdeck` (the working name was Claude Share, with `.ccsession`).
 - Distribution channel for builds (internal download page, MDM, package managers).
 - Who owns the code-signing certificates for macOS and Windows.

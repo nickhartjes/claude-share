@@ -1,6 +1,6 @@
-# @claude-share/signalling
+# @specdeck/signalling
 
-The matchmaking service that introduces Claude Share hosts and viewers (design decisions 7 and 8 in `openspec/changes/shared-claude-session/design.md`). It runs in the team's Kubernetes cluster next to a coturn TURN relay.
+The matchmaking service that introduces SpecDeck hosts and viewers (design decisions 7 and 8 in `openspec/changes/shared-claude-session/design.md`). It runs in the team's Kubernetes cluster next to a coturn TURN relay.
 
 What it does:
 - matches a host and its viewers by **room id**;
@@ -11,7 +11,7 @@ What it never sees: invite codes (apps derive the room id from the code), and se
 
 ## Protocol
 
-JSON over a WebSocket at `/signal`. The schemas are in `@claude-share/protocol` (`src/signalling.ts`).
+JSON over a WebSocket at `/signal`. The schemas are in `@specdeck/protocol` (`src/signalling.ts`).
 
 | From | Message | Effect |
 |---|---|---|
@@ -50,7 +50,7 @@ TURN credentials follow the TURN REST API scheme that coturn implements with `us
 ## Run locally
 
 ```sh
-pnpm --filter @claude-share/signalling build
+pnpm --filter @specdeck/signalling build
 PORT=8080 node packages/signalling/dist/main.js
 curl http://127.0.0.1:8080/healthz
 ```
@@ -79,7 +79,7 @@ The manifests are in `deploy/k8s/base` (kustomize):
 Before deploying:
 1. Create `deploy/k8s/base/turn-secret.env` (git-ignored) with `TURN_SECRET=<long random value>`.
 2. Set `TURN_EXTERNAL_IP`, `TURN_URLS` and `STUN_URLS` in `kustomization.yaml` to the public address and ports agreed with the cluster operators (`docs/spikes/k8s-turn.md`).
-3. Set the image of `claude-share-signalling` to where `just signalling-image` pushed it.
+3. Set the image of `specdeck-signalling` to where `just signalling-image` pushed it.
 4. Expose the signalling Service through the cluster's ingress with TLS. WebSockets must be allowed on `/signal`.
 
 Then apply the manifests:

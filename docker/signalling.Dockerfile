@@ -9,8 +9,8 @@ RUN --mount=type=secret,id=npmrc,target=/root/.npmrc npm install -g pnpm@12.16.1
 WORKDIR /repo
 COPY . .
 RUN --mount=type=secret,id=npmrc,target=/root/.npmrc \
-  pnpm install --frozen-lockfile --filter "@claude-share/signalling..." \
-  && pnpm --filter @claude-share/signalling build
+  pnpm install --frozen-lockfile --filter "@specdeck/signalling..." \
+  && pnpm --filter @specdeck/signalling build
 
 # The bundle has no runtime dependencies, so the final image only needs Node.
 FROM ${REGISTRY}/library/node:24-bookworm-slim

@@ -1,4 +1,4 @@
-import { encodeFrame, type Signer, type TimelineEvent } from '@claude-share/protocol';
+import { encodeFrame, type Signer, type TimelineEvent } from '@specdeck/protocol';
 import type { Snapshot } from './terminal-mirror.ts';
 
 /** Where the hub gets terminal output from; implemented by HostSession. */

@@ -1,6 +1,8 @@
-import { mkdir, open, readdir, readFile, rm, stat, writeFile, type FileHandle } from 'node:fs/promises';
+import { createReadStream } from 'node:fs';
+import { mkdir, open, readdir, readFile, rename, rm, stat, writeFile, type FileHandle } from 'node:fs/promises';
 import { join } from 'node:path';
-import { TimelineEvent, type Recording, type RecordingSummary, type TerminalResize } from '@claude-share/protocol';
+import { createInterface } from 'node:readline';
+import { TimelineEvent, type Recording, type RecordingSummary, type TerminalResize } from '@specdeck/protocol';
 import { unzipSync, zipSync, type Zippable } from 'fflate';
 import { z } from 'zod';
 import { OutputLog, parseOutputLog } from './output-log.ts';
@@ -21,6 +23,34 @@ const FILES = {
 
 const FLUSH_INTERVAL_MS = 1000;
 
+const MAX_TITLE_LENGTH = 200;
+const DERIVED_TITLE_LENGTH = 80;
+const NO_PROMPTS_TITLE = 'No prompts';
+
+/** A title from a session's first prompt: its first non-empty line, shortened to fit a list. */
+export function titleFromPrompt(text: string | undefined): string {
+  const line = (text ?? '').split(/\r?\n/).map((l) => l.replace(/\s+/g, ' ').trim()).find(Boolean);
+  if (!line) return NO_PROMPTS_TITLE;
+  return line.length > DERIVED_TITLE_LENGTH ? `${line.slice(0, DERIVED_TITLE_LENGTH - 1).trimEnd()}…` : line;
+}
+
+/** Replaces the manifest in one step, so a crash or a concurrent reader never sees half a file. */
+async function writeManifest(dir: string, manifest: Manifest): Promise<void> {
+  const file = join(dir, FILES.manifest);
+  const temp = `${file}.${process.pid}.tmp`;
+  await writeFile(temp, JSON.stringify(manifest, null, 2), { mode: 0o600 });
+  await rename(temp, file);
+}
+
+async function readManifest(dir: string): Promise<Manifest | undefined> {
+  try {
+    const parsed = Manifest.safeParse(JSON.parse(await readFile(join(dir, FILES.manifest), 'utf8')));
+    return parsed.success ? parsed.data : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 export const Manifest = z.object({
   formatVersion: z.number().int().positive(),
   appVersion: z.string(),
@@ -30,6 +60,8 @@ export const Manifest = z.object({
   rows: z.number().int().positive(),
   startedAt: z.number(),
   endedAt: z.number().optional(),
+  /** Set by the host; without it the title comes from the first prompt. Optional, so format 1 still applies. */
+  title: z.string().max(MAX_TITLE_LENGTH).optional(),
 });
 export type Manifest = z.infer<typeof Manifest>;
 
@@ -133,8 +165,10 @@ export class Recorder {
   /** Flushes everything and marks the recording complete. */
   async finish(endedAt = Date.now()): Promise<void> {
     await Promise.all([this.outputLog.close(), this.events.close(), this.terminal.close()]);
-    this.manifest = { ...this.manifest, endedAt };
-    await writeFile(join(this.dir, FILES.manifest), JSON.stringify(this.manifest, null, 2), { mode: 0o600 });
+    // The host may have renamed the session while it ran; keep that title.
+    const { title } = (await readManifest(this.dir)) ?? {};
+    this.manifest = { ...this.manifest, endedAt, ...(title !== undefined ? { title } : {}) };
+    await writeManifest(this.dir, this.manifest);
   }
 }
 
@@ -169,12 +203,12 @@ function parseLines<T>(text: string | undefined, schema: z.ZodType<T>, what: str
 
 async function readFrom(source: FileSource): Promise<Recording> {
   const manifestBytes = await source.read(FILES.manifest);
-  if (!manifestBytes) throw new RecordingFormatError('This is not a Claude Share recording: it has no manifest.');
+  if (!manifestBytes) throw new RecordingFormatError('This is not a SpecDeck recording: it has no manifest.');
   let manifestJson: unknown;
   try {
     manifestJson = JSON.parse(manifestBytes.toString('utf8'));
   } catch {
-    throw new RecordingFormatError('This is not a Claude Share recording: its manifest is damaged.');
+    throw new RecordingFormatError('This is not a SpecDeck recording: its manifest is damaged.');
   }
   const version = (manifestJson as { formatVersion?: unknown } | null)?.formatVersion;
   if (typeof version === 'number' && version > RECORDING_FORMAT_VERSION) {
@@ -183,7 +217,7 @@ async function readFrom(source: FileSource): Promise<Recording> {
     );
   }
   const manifest = Manifest.safeParse(manifestJson);
-  if (!manifest.success) throw new RecordingFormatError('This is not a Claude Share recording: its manifest is not valid.');
+  if (!manifest.success) throw new RecordingFormatError('This is not a SpecDeck recording: its manifest is not valid.');
 
   const snapshots: Snapshot[] = [];
   for (const name of await source.snapshotNames()) {
@@ -195,10 +229,13 @@ async function readFrom(source: FileSource): Promise<Recording> {
       // A snapshot only speeds up replay; skip a damaged one.
     }
   }
+  const events = parseLines((await source.read(FILES.events))?.toString('utf8'), RecordedEvent, FILES.events);
+  const firstPrompt = events.find(({ event }) => event.kind === 'prompt')?.event;
   return {
     manifest: manifest.data,
+    title: manifest.data.title ?? titleFromPrompt(firstPrompt?.kind === 'prompt' ? firstPrompt.text : undefined),
     output: parseOutputLog((await source.read(FILES.output)) ?? Buffer.alloc(0)),
-    events: parseLines((await source.read(FILES.events))?.toString('utf8'), RecordedEvent, FILES.events),
+    events,
     resizes: parseLines((await source.read(FILES.terminal))?.toString('utf8'), Resize, FILES.terminal),
     snapshots: snapshots.sort((a, b) => a.seq - b.seq),
   };
@@ -219,14 +256,8 @@ export async function listRecordings(root: string): Promise<RecordingSummary[]> 
   const summaries: RecordingSummary[] = [];
   for (const entry of entries.filter((e) => e.isDirectory())) {
     const dir = join(root, entry.name);
-    let manifest: Manifest;
-    try {
-      const parsed = Manifest.safeParse(JSON.parse(await readFile(join(dir, FILES.manifest), 'utf8')));
-      if (!parsed.success) continue;
-      manifest = parsed.data;
-    } catch {
-      continue;
-    }
+    const manifest = await readManifest(dir);
+    if (!manifest) continue;
     // Without an end time, the last write is the best estimate of when the session stopped.
     const lastWrite = Math.max(
       ...(await Promise.all(
@@ -236,6 +267,8 @@ export async function listRecordings(root: string): Promise<RecordingSummary[]> 
     summaries.push({
       id: entry.name,
       dir,
+      title: manifest.title ?? titleFromPrompt(await firstPromptText(join(dir, FILES.events))),
+      customTitle: manifest.title !== undefined,
       cwd: manifest.cwd,
       startedAt: manifest.startedAt,
       durationMs: Math.max(0, (manifest.endedAt ?? lastWrite) - manifest.startedAt),
@@ -245,12 +278,45 @@ export async function listRecordings(root: string): Promise<RecordingSummary[]> 
   return summaries.sort((a, b) => b.startedAt - a.startedAt);
 }
 
+/** The text of the first prompt in an events file, reading only as far as that prompt. */
+async function firstPromptText(file: string): Promise<string | undefined> {
+  const stream = createReadStream(file, { encoding: 'utf8' });
+  const lines = createInterface({ input: stream, crlfDelay: Infinity });
+  try {
+    for await (const line of lines) {
+      try {
+        const parsed = RecordedEvent.safeParse(JSON.parse(line));
+        if (parsed.success && parsed.data.event.kind === 'prompt') return parsed.data.event.text;
+      } catch {
+        // A line cut off by a crash.
+      }
+    }
+  } catch {
+    // No events file yet.
+  } finally {
+    lines.close();
+    stream.destroy();
+  }
+  return undefined;
+}
+
+/**
+ * Sets the title the host chose for a recording; an empty title brings back the one from the
+ * first prompt. Works while the session still runs: the recorder keeps the title when it finishes.
+ */
+export async function renameRecording(dir: string, title: string | undefined): Promise<void> {
+  const manifest = await readManifest(dir);
+  if (!manifest) throw new RecordingFormatError('This directory is not a recording: it has no valid manifest.');
+  const trimmed = title?.replace(/\s+/g, ' ').trim().slice(0, MAX_TITLE_LENGTH);
+  await writeManifest(dir, { ...manifest, title: trimmed || undefined });
+}
+
 /** Deletes a recording, including its directory and everything in it. */
 export async function deleteRecording(dir: string): Promise<void> {
   await rm(dir, { recursive: true, force: true });
 }
 
-/** Writes a recording to a single `.ccsession` file (a zip). Only recording files are included. */
+/** Writes a recording to a single `.specdeck` file (a zip). Only recording files are included. */
 export async function exportRecording(dir: string, file: string): Promise<void> {
   const entries: Zippable = {};
   for (const name of [FILES.manifest, FILES.output, FILES.events, FILES.terminal]) {
@@ -266,13 +332,13 @@ export async function exportRecording(dir: string, file: string): Promise<void> 
   await writeFile(file, zipSync(entries, { level: 6 }), { mode: 0o600 });
 }
 
-/** Opens an exported `.ccsession` file. Throws RecordingFormatError with a reason if it cannot. */
+/** Opens an exported `.specdeck` file. Throws RecordingFormatError with a reason if it cannot. */
 export async function readRecordingFile(file: string): Promise<Recording> {
   let files: Record<string, Uint8Array>;
   try {
     files = unzipSync(new Uint8Array(await readFile(file)));
   } catch {
-    throw new RecordingFormatError('This file is not a Claude Share recording: it is not a valid .ccsession file.');
+    throw new RecordingFormatError('This file is not a SpecDeck recording: it is not a valid .specdeck file.');
   }
   return readFrom({
     read: async (name) => (files[name] ? Buffer.from(files[name]) : undefined),

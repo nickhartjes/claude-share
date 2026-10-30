@@ -1,4 +1,4 @@
-import { createSessionKeys, createVerifier, encodeFrame } from '@claude-share/protocol';
+import { createSessionKeys, createVerifier, encodeFrame } from '@specdeck/protocol';
 import xtermHeadless from '@xterm/headless';
 import { describe, expect, it } from 'vitest';
 import { connectReadOnlyTerminal } from './read-only-terminal';

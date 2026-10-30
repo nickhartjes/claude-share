@@ -1,5 +1,5 @@
 import { isAbsolute, relative, sep } from 'node:path';
-import type { DiffHunk, TimelineEvent } from '@claude-share/protocol';
+import type { DiffHunk, TimelineEvent } from '@specdeck/protocol';
 import { z } from 'zod';
 import type { HookPayload } from './hook-endpoint.ts';
 

@@ -1,4 +1,4 @@
-import type { TimelineEvent } from '@claude-share/protocol';
+import type { TimelineEvent } from '@specdeck/protocol';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { HostSession } from './host-session.ts';
 import { FakePty } from './test-support.ts';

@@ -1,6 +1,6 @@
 // The contract between the window (renderer) and the app's main process. The preload script
-// exposes an implementation as `window.claudeShare`. Types only: shared by main, preload and renderer.
-import type { ClaudeStatus, Recording, RecordingSummary, SharingState, TimelineEvent } from '@claude-share/protocol';
+// exposes an implementation as `window.specDeck`. Types only: shared by main, preload and renderer.
+import type { ClaudeStatus, Recording, RecordingSummary, SharingState, TimelineEvent } from '@specdeck/protocol';
 
 /** Nerd mode shows the terminal, tool calls and diffs; business mode a plain conversation. */
 export type InterfaceMode = 'nerd' | 'business';
@@ -30,8 +30,10 @@ export const DEFAULT_DISPLAY_SETTINGS: DisplaySettings = {
 export interface AppSettings extends DisplaySettings {
   /** Display name shown to other participants; required before hosting or joining. */
   username: string | undefined;
-  /** Signalling service URL, from the build configuration or CLAUDE_SHARE_SIGNALLING_URL. */
+  /** Signalling service URL, from the build configuration or SPECDECK_SIGNALLING_URL. */
   signallingUrl: string | undefined;
+  /** Folders sessions were recently hosted in, newest first; only ones that still exist. */
+  recentFolders: string[];
 }
 
 /** What the daemon tells the host window, relayed by the main process. */
@@ -47,11 +49,38 @@ export type HostEvent =
   /** The connection to the daemon was lost (the daemon stopped). */
   | { type: 'disconnected' };
 
+/** `install`: the app updates itself; `notify`: it links to the download; `off`: development builds. */
+export type UpdateMode = 'off' | 'notify' | 'install';
+
+/** What the app knows about a newer version (`app-updates`). */
+export type UpdateState =
+  | { kind: 'none' }
+  /** A newer version this build cannot install itself; `url` is its download page. */
+  | { kind: 'available'; version: string; url: string }
+  | { kind: 'downloading'; version: string; percent: number }
+  /** Downloaded; installs on restart. `canRestart` is false while a session is hosted. */
+  | { kind: 'ready'; version: string; canRestart: boolean };
+
+export type UpdateStatus = UpdateState & { mode: UpdateMode };
+
+export interface UpdatesApi {
+  get(): Promise<UpdateStatus>;
+  onChanged(listener: (status: UpdateStatus) => void): () => void;
+  /** Checks now, for example after a join failed because this app is out of date. */
+  check(): Promise<void>;
+  /** Restarts into the downloaded update. Rejects while a session is hosted. */
+  restart(): Promise<void>;
+  /** Opens the download page of the newer version, or of the latest release, in the browser. */
+  openDownload(): Promise<void>;
+}
+
 export type StartResult = { ok: true } | { ok: false; message: string };
 
 export interface HostApi {
   /** Starts Claude Code in `cwd` and shares it. */
   start(cwd: string, size: { cols: number; rows: number }): Promise<StartResult>;
+  /** Like `start`, for one of `AppSettings.recentFolders`; refuses any other folder. */
+  startRecent(cwd: string, size: { cols: number; rows: number }): Promise<StartResult>;
   /** Reattaches to a session that is still running, for example after the window was closed. */
   resume(): Promise<boolean>;
   onEvent(listener: (event: HostEvent) => void): () => void;
@@ -72,10 +101,12 @@ export type OpenRecordingResult =
 export interface RecordingsApi {
   list(): Promise<RecordingSummary[]>;
   delete(id: string): Promise<void>;
-  /** Asks where to save, then writes a .ccsession file. False if the host cancelled. */
+  /** Sets the title of a saved session; an empty title brings back the one from its first prompt. */
+  rename(id: string, title: string): Promise<void>;
+  /** Asks where to save, then writes a .specdeck file. False if the host cancelled. */
   export(id: string): Promise<boolean>;
   open(id: string): Promise<OpenRecordingResult>;
-  /** Asks for a .ccsession file and opens it. */
+  /** Asks for a .specdeck file and opens it. */
   openFile(): Promise<OpenRecordingResult>;
 }
 
@@ -88,8 +119,11 @@ export interface Bridge {
   onSettingsChanged(listener: (settings: AppSettings) => void): () => void;
   /** Asks the host to pick a working directory. Undefined if cancelled. */
   chooseDirectory(): Promise<string | undefined>;
+  /** Removes a folder from the recent folders. Nothing on disk changes. */
+  forgetFolder(folder: string): Promise<void>;
   host: HostApi;
   recordings: RecordingsApi;
+  updates: UpdatesApi;
 }
 
 export const CHANNELS = {
@@ -98,14 +132,22 @@ export const CHANNELS = {
   updateSettings: 'settings:update',
   settingsChanged: 'settings:changed',
   chooseDirectory: 'dialog:choose-directory',
+  forgetFolder: 'settings:forget-folder',
   hostStart: 'host:start',
+  hostStartRecent: 'host:start-recent',
   hostResume: 'host:resume',
   hostEvent: 'host:event',
   hostSend: 'host:send',
   hostClose: 'host:close',
   recordingsList: 'recordings:list',
   recordingsDelete: 'recordings:delete',
+  recordingsRename: 'recordings:rename',
   recordingsExport: 'recordings:export',
   recordingsOpen: 'recordings:open',
   recordingsOpenFile: 'recordings:open-file',
+  updatesGet: 'updates:get',
+  updatesChanged: 'updates:changed',
+  updatesCheck: 'updates:check',
+  updatesRestart: 'updates:restart',
+  updatesOpenDownload: 'updates:open-download',
 } as const;
