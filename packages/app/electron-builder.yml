@@ -28,6 +28,10 @@ fileAssociations:
   - ext: specdeck
     name: SpecDeck recording
     role: Viewer
+# Installers have no version in their file name, so github.com/.../releases/latest/download/<name>
+# always links to the newest one (README, Install). The updater finds files through latest*.yml.
+dmg:
+  artifactName: SpecDeck-${arch}.${ext}
 mac:
   target:
     - target: dmg
@@ -46,8 +50,12 @@ win:
     - target: nsis
       arch: [x64, arm64]
 nsis:
+  # One installer for x64 and arm64.
+  artifactName: SpecDeck-Setup.${ext}
   oneClick: false
   perMachine: false
+appImage:
+  artifactName: SpecDeck-${arch}.${ext}
 linux:
   target: [AppImage, deb]
   # Defaults to the package name, whose "@" and "/" cannot be used in a file name.
@@ -56,4 +64,4 @@ linux:
   maintainer: Entrnce
 deb:
   # The default file name starts with the package name and would land in an "@specdeck/" folder.
-  artifactName: specdeck_${version}_${arch}.${ext}
+  artifactName: specdeck_${arch}.${ext}

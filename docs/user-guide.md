@@ -7,7 +7,7 @@ Viewers are read-only. Only the host types into Claude Code, and the session run
 ## Before you start
 
 **Everyone** needs:
-- the SpecDeck app for macOS, Windows or Linux (from the team's download location);
+- the SpecDeck app for macOS, Windows or Linux (see [Install](../README.md#install));
 - a network connection. SpecDeck connects through the team's sharing service, so a VPN is not needed.
 
 **The host** also needs:
@@ -15,7 +15,7 @@ Viewers are read-only. Only the host types into Claude Code, and the session run
 - On **Windows**: **Git for Windows** (Git Bash), which Claude Code needs. If it is installed somewhere unusual, set `CLAUDE_CODE_GIT_BASH_PATH` to the path of `bash.exe`.
 
 Until the app is signed, macOS and Windows warn when you first open it:
-- **macOS:** right-click the app and choose **Open**.
+- **macOS:** choose **Done**, then select **Open Anyway** for SpecDeck in **System Settings → Privacy & Security**.
 - **Windows:** choose **More info → Run anyway**.
 
 ## Set your name

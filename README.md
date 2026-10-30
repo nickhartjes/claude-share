@@ -4,6 +4,77 @@ SpecDeck lets one person (the **host**) run Claude Code on their computer while 
 
 How to use the app: [docs/user-guide.md](docs/user-guide.md).
 
+## Install
+
+| Platform | Download |
+|---|---|
+| Windows (x64 and Arm) | [SpecDeck-Setup.exe](https://github.com/nickhartjes/specdeck/releases/latest/download/SpecDeck-Setup.exe) |
+| macOS, Apple silicon | [SpecDeck-arm64.dmg](https://github.com/nickhartjes/specdeck/releases/latest/download/SpecDeck-arm64.dmg), or [Homebrew](#macos-homebrew) |
+| macOS, Intel | [SpecDeck-x64.dmg](https://github.com/nickhartjes/specdeck/releases/latest/download/SpecDeck-x64.dmg), or [Homebrew](#macos-homebrew) |
+| Linux, any distribution | [SpecDeck-x86_64.AppImage](https://github.com/nickhartjes/specdeck/releases/latest/download/SpecDeck-x86_64.AppImage) |
+| Debian and Ubuntu | [specdeck_amd64.deb](https://github.com/nickhartjes/specdeck/releases/latest/download/specdeck_amd64.deb) |
+
+These links always point to the newest release. Test versions (prereleases) are not linked here; find them on the [releases page](https://github.com/nickhartjes/specdeck/releases). To host a session you also need [Claude Code](https://docs.claude.com/en/docs/claude-code), installed and logged in. Viewers only need the app.
+
+The builds are not code-signed yet, so macOS and Windows warn the first time you open the app (see below for each platform).
+
+### macOS (Homebrew)
+
+```sh
+brew install --cask nickhartjes/tap/specdeck
+```
+
+Or download the `.dmg` for your Mac from the table above, open it and drag SpecDeck to Applications.
+
+The first time you open it, macOS says it cannot check the app for malicious software. Choose **Done**, then open **System Settings → Privacy & Security**, scroll down to SpecDeck and select **Open Anyway**.
+
+Until the app is signed it cannot update itself on macOS. It tells you when there is a new version: run `brew upgrade --cask specdeck`, or download the new `.dmg`.
+
+### Windows
+
+1. Download [SpecDeck-Setup.exe](https://github.com/nickhartjes/specdeck/releases/latest/download/SpecDeck-Setup.exe) and run it. The same installer works on x64 and Arm PCs.
+2. If SmartScreen says it protected your PC, select **More info → Run anyway**.
+
+To host sessions, also install [Git for Windows](https://git-scm.com/download/win), which Claude Code needs. The app updates itself.
+
+### Linux
+
+**AppImage** (any distribution, updates itself):
+
+```sh
+chmod +x SpecDeck-x86_64.AppImage
+./SpecDeck-x86_64.AppImage
+```
+
+On Ubuntu 22.04 and later, AppImages need FUSE 2: `sudo apt install libfuse2t64` (or `libfuse2` before 24.04).
+
+**Debian and Ubuntu** (`.deb`):
+
+```sh
+sudo apt install ./specdeck_amd64.deb
+```
+
+The app is then in your applications menu, or run `specdeck`. It tells you when there is a new version; install the new `.deb` the same way.
+
+### NixOS
+
+There is no Nix package yet. Run the AppImage instead. Enable AppImage support in your configuration:
+
+```nix
+programs.appimage = {
+  enable = true;
+  binfmt = true;
+};
+```
+
+After `nixos-rebuild switch`, make the AppImage executable and run it as on any other Linux. The app updates itself.
+
+To try it without changing your configuration:
+
+```sh
+nix-shell -p appimage-run --run "appimage-run ./SpecDeck-x86_64.AppImage"
+```
+
 ## How it works
 
 ```
@@ -56,7 +127,8 @@ Run `just` to list all recipes. Others worth knowing:
 - [`ci.yml`](.github/workflows/ci.yml) runs the checks on macOS, Windows and in the Linux container, then packages the app, on pushes to `main` and on pull requests.
 - [`release.yml`](.github/workflows/release.yml) builds and signs the installers when a `v*` tag is pushed. It publishes them, with the update metadata (`latest*.yml`), to this repository's [GitHub Releases](https://github.com/nickhartjes/specdeck/releases), where installed apps look for updates. The release stays a draft until every platform has uploaded. The tag must match the version in `packages/app/package.json`, and a tag with a suffix such as `v0.2.0-rc.1` becomes a prerelease. The workflow uses these repository secrets (listed at the top of the file), which are not set up yet:
   - the signing certificates and notarization key; until they exist, the installers are unsigned;
-  - the signalling URL.
+  - the signalling URL;
+  - `HOMEBREW_TAP_TOKEN`, a token that can push to [`nickhartjes/homebrew-tap`](https://github.com/nickhartjes/homebrew-tap). With it, each release updates the `specdeck` cask there.
 
 ## Status
 
