@@ -1,6 +1,7 @@
 import type { Recording } from '@claude-share/protocol';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import type { AppSettings, Bridge } from '../../shared/bridge';
+import { DisplaySettingsProvider, useAppSettings } from './display-settings';
 import { HostScreen } from './screens/HostScreen';
 import { RecordingsScreen, ReplayScreen } from './screens/RecordingsScreen';
 import { StartScreen } from './screens/StartScreen';
@@ -14,15 +15,18 @@ type Screen =
   | { name: 'replay'; recording: Recording };
 
 export function App({ bridge }: { bridge: Bridge }) {
-  const [settings, setSettings] = useState<AppSettings | undefined>();
+  const { settings, setSettings, updateDisplay } = useAppSettings(bridge);
+  if (!settings) return null;
+  return (
+    <DisplaySettingsProvider value={{ display: settings, updateDisplay }}>
+      <Screens bridge={bridge} settings={settings} setSettings={setSettings} />
+    </DisplaySettingsProvider>
+  );
+}
+
+function Screens({ bridge, settings, setSettings }: { bridge: Bridge; settings: AppSettings; setSettings(settings: AppSettings): void }) {
   // On start, reattach to a session that is still running (the window was closed, or the app restarted).
   const [screen, setScreen] = useState<Screen>({ name: 'host', mode: { resume: true } });
-
-  useEffect(() => {
-    void bridge.getSettings().then(setSettings);
-  }, [bridge]);
-
-  if (!settings) return null;
   const toStart = (error?: string) => setScreen(error ? { name: 'start', error } : { name: 'start' });
 
   switch (screen.name) {

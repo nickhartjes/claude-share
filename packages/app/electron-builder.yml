@@ -7,6 +7,10 @@ directories:
 files:
   - out/**
   - package.json
+# The bundled Source Serif 4 font is under the SIL Open Font License, which must ship with it.
+extraResources:
+  - from: licenses
+    to: licenses
 # Native modules cannot load from inside app.asar, and node-pty's spawn-helper must be executable.
 asarUnpack:
   - "**/node_modules/node-pty/**"

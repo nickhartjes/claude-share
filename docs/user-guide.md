@@ -60,6 +60,23 @@ If joining fails, the app says why:
 
 ## Follow a session
 
+The session screen has two views. Switch between them with **Business** and **Nerd** at the top. The app remembers your choice for the next session; the first time, it starts in **Nerd**. Your view never changes what the host or other viewers see.
+
+### Business view
+
+The session as a conversation: what was asked, what Claude did and what it answered.
+
+- Each prompt appears as a message with who sent it and when, followed by Claude's answer. An answer fills in while Claude is still writing it.
+- Between the prompt and the answer, short lines say what Claude did, such as **Looked at 2 files**, **Changed a file** or **Ran a command: failed**. They leave out file names and commands; switch to **Nerd** to see those.
+- **Search** finds prompts and answers; use the arrows or Enter (Shift+Enter goes back) to step through them.
+- **Jump to prompt…** scrolls to any prompt in the session.
+- While you are scrolled back, **New messages · follow live** appears when Claude writes more. Select it to return to the latest message.
+- **People** lists who is in the session.
+
+The host keeps the terminal next to the conversation in this view, so they can keep typing.
+
+### Nerd view
+
 The screen has three columns.
 
 **Terminal (left)**
@@ -67,6 +84,7 @@ The screen has three columns.
 - While you are scrolled back, **New output · follow live** appears when Claude writes more. Select it to return to the live end.
 - **Search terminal** searches the whole session; use the arrows or Enter (Shift+Enter goes back) to step through matches.
 - Select text and choose **Copy selection**.
+- Viewers: **Fit** sizes the text so the host's whole terminal fits your column. **A−** and **A+** choose a size yourself instead; the terminal then scrolls sideways if it is wider than your column. The app remembers your choice.
 
 **Timeline (middle)**
 - Lists every prompt, numbered. Select a prompt to jump to it in the terminal and to show Claude's answer.
@@ -76,6 +94,12 @@ The screen has three columns.
 **Files (right)**
 - Lists the files Claude changed, then the files it only read.
 - Select a file to see every change to it, in order, as a diff.
+
+### Size and layout
+
+- **Zoom**: **−** and **+** at the top, or Ctrl/Cmd **+** and **−**, make everything larger or smaller; Ctrl/Cmd **0** or selecting the percentage resets it. The app remembers the zoom level.
+- **Columns**: drag the edge between two columns to resize them. The button at the top right of a side column collapses it to a strip; select the strip to open it again. The app remembers the sizes for each view.
+- **Small windows**: when the window is too narrow for every column, the side columns move to tabs below the terminal or conversation. Select a tab to open it, and again to close it.
 
 The bar at the bottom shows whether the session is live, what Claude is doing, and how many people are in the session.
 

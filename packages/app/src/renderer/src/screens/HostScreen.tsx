@@ -1,7 +1,8 @@
 import type { ClaudeStatus, Participant, SharingState } from '@claude-share/protocol';
 import { useEffect, useRef, useState } from 'react';
 import type { Bridge, HostEvent } from '../../../shared/bridge';
-import { HostControls, ParticipantsList, SessionView, StatusBar } from '../components/SessionParts';
+import { HostControls, ParticipantsList, StatusBar } from '../components/SessionParts';
+import { SessionView } from '../components/SessionView';
 import type { TerminalController } from '../components/TerminalPane';
 import { applyEvent, emptyTimeline, type TimelineState } from '../model/timeline';
 
@@ -73,6 +74,7 @@ export function HostScreen({ bridge, mode, sharingConfigured, onFailed, onEnded 
   const participants = sharing?.participants ?? [];
   return (
     <SessionView
+      sender={participants.find((p) => p.role === 'host')?.label}
       interactive
       timeline={timeline}
       onTerminalReady={(controller) => (terminal.current = controller)}

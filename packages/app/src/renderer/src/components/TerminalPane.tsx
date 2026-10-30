@@ -6,6 +6,8 @@ import '@xterm/xterm/css/xterm.css';
 import { useEffect, useRef, useState } from 'react';
 import { followAgain, initialFollow, onJump, onOutput, onScroll, type FollowState } from '../model/follow';
 import { PositionIndex } from '../model/position-index';
+import { DEFAULT_FONT, FIT_MAX_FONT, FIT_MIN_FONT, fitFontSize } from '../model/terminal-fit';
+import type { TerminalFont } from '../../../shared/bridge';
 
 /** What screens do with the terminal: feed it, and move around in it. */
 export interface TerminalController {
@@ -25,11 +27,31 @@ export interface TerminalPaneProps {
   onInput?(data: string): void;
   /** Host only: the terminal was fitted to a new size. */
   onFit?(cols: number, rows: number): void;
+  /** Viewers: fit the font to the pane, or a size they chose (`display-scaling`). */
+  font?: TerminalFont;
+  onFontChange?(font: TerminalFont): void;
+}
+
+// The --font-mono stack in styles.css.
+const FONT_FAMILY = 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace';
+// xterm's vertical scrollbar takes this much of the pane's width.
+const SCROLLBAR = 14;
+
+/** Width of one monospace cell at `size`, or 0 where there is no canvas (tests). */
+function cellWidth(size: number): number {
+  try {
+    const context = document.createElement('canvas').getContext('2d');
+    if (!context) return 0;
+    context.font = `${size}px ${FONT_FAMILY}`;
+    return context.measureText('W').width;
+  } catch {
+    return 0;
+  }
 }
 
 const isAtBottom = (terminal: Terminal) => terminal.buffer.active.viewportY >= terminal.buffer.active.baseY;
 
-export function TerminalPane({ interactive, onReady, onInput, onFit }: TerminalPaneProps) {
+export function TerminalPane({ interactive, onReady, onInput, onFit, font = { kind: 'fit' }, onFontChange }: TerminalPaneProps) {
   const container = useRef<HTMLDivElement>(null);
   const terminalRef = useRef<Terminal | undefined>(undefined);
   const searchRef = useRef<SearchAddon | undefined>(undefined);
@@ -37,16 +59,19 @@ export function TerminalPane({ interactive, onReady, onInput, onFit }: TerminalP
   const [query, setQuery] = useState('');
   const [matches, setMatches] = useState<{ index: number; count: number } | undefined>();
   const [copied, setCopied] = useState(false);
-  // Latest callbacks, so the terminal set-up effect runs only once.
-  const callbacks = useRef({ onReady, onInput, onFit });
-  callbacks.current = { onReady, onInput, onFit };
+  const [fontSize, setFontSize] = useState(DEFAULT_FONT);
+  // Latest callbacks and font setting, so the terminal set-up effect runs only once.
+  const callbacks = useRef({ onReady, onInput, onFit, font });
+  callbacks.current = { onReady, onInput, onFit, font };
+  // Re-applies the viewer's font setting; set once the terminal exists.
+  const applyFont = useRef<() => void>(() => {});
 
   useEffect(() => {
     const element = container.current;
     if (!element) return;
     const terminal = new Terminal({
-      fontFamily: 'ui-monospace, "SF Mono", Menlo, Consolas, monospace',
-      fontSize: 13,
+      fontFamily: FONT_FAMILY,
+      fontSize: DEFAULT_FONT,
       scrollback: 100_000,
       allowProposedApi: true,
       disableStdin: !interactive,
@@ -76,6 +101,7 @@ export function TerminalPane({ interactive, onReady, onInput, onFit }: TerminalP
 
     let observer: ResizeObserver | undefined;
     if (interactive) {
+      // The host's terminal fits its columns and rows to the pane and reports them (`session-hosting`).
       const refit = () => {
         fit.fit();
         callbacks.current.onFit?.(terminal.cols, terminal.rows);
@@ -83,6 +109,21 @@ export function TerminalPane({ interactive, onReady, onInput, onFit }: TerminalP
       observer = new ResizeObserver(refit);
       observer.observe(element);
       refit();
+    } else {
+      // A viewer's terminal keeps the host's columns and only changes how large they are drawn.
+      const reference = cellWidth(DEFAULT_FONT);
+      applyFont.current = () => {
+        const chosen = callbacks.current.font;
+        const size =
+          chosen.kind === 'manual'
+            ? chosen.size
+            : fitFontSize({ paneWidth: element.clientWidth - SCROLLBAR, cols: terminal.cols, cellWidth: reference, referenceSize: DEFAULT_FONT });
+        if (terminal.options.fontSize !== size) terminal.options.fontSize = size;
+        setFontSize(size);
+      };
+      observer = new ResizeObserver(() => applyFont.current());
+      observer.observe(element);
+      applyFont.current();
     }
 
     callbacks.current.onReady({
@@ -99,7 +140,9 @@ export function TerminalPane({ interactive, onReady, onInput, onFit }: TerminalP
         setFollow((state) => onOutput(state));
       },
       resize: (cols, rows) => {
-        if (!interactive) terminal.resize(cols, rows);
+        if (interactive) return;
+        terminal.resize(cols, rows);
+        applyFont.current();
       },
       jumpTo: (seq, text) => {
         const line = index.lineFor(seq);
@@ -110,12 +153,15 @@ export function TerminalPane({ interactive, onReady, onInput, onFit }: TerminalP
     });
 
     return () => {
+      applyFont.current = () => {};
       observer?.disconnect();
       for (const disposable of disposables) disposable.dispose();
       terminal.dispose();
       terminalRef.current = undefined;
     };
   }, [interactive]);
+
+  useEffect(() => applyFont.current(), [font.kind, font.kind === 'manual' ? font.size : 0]);
 
   const find = (direction: 'next' | 'previous') => {
     if (!query) return;
@@ -155,7 +201,23 @@ export function TerminalPane({ interactive, onReady, onInput, onFit }: TerminalP
           ↓
         </button>
         {matches && <span className="muted">{matches.count === 0 ? 'No matches' : `${matches.index} of ${matches.count}`}</span>}
-        <button onClick={() => void copy()} style={{ marginLeft: 'auto' }}>
+        {!interactive && (
+          <div className="font-controls" role="group" aria-label="Terminal font size" style={{ marginLeft: 'auto' }}>
+            <button aria-pressed={font.kind === 'fit'} title="Fit the host's terminal width to this pane" onClick={() => onFontChange?.({ kind: 'fit' })}>
+              Fit
+            </button>
+            <button aria-label="Smaller terminal font" disabled={fontSize <= FIT_MIN_FONT} onClick={() => onFontChange?.({ kind: 'manual', size: Math.max(FIT_MIN_FONT, Math.ceil(fontSize) - 1) })}>
+              A−
+            </button>
+            <span className="muted" aria-label="Terminal font size in pixels">
+              {fontSize}
+            </span>
+            <button aria-label="Larger terminal font" disabled={fontSize >= FIT_MAX_FONT * 2} onClick={() => onFontChange?.({ kind: 'manual', size: Math.floor(fontSize) + 1 })}>
+              A+
+            </button>
+          </div>
+        )}
+        <button onClick={() => void copy()} style={interactive ? { marginLeft: 'auto' } : undefined}>
           {copied ? 'Copied' : 'Copy selection'}
         </button>
         {follow.following ? (

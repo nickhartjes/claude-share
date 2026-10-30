@@ -86,3 +86,46 @@ describe('TerminalPane (viewer)', () => {
     expect(onInput).not.toHaveBeenCalled();
   });
 });
+
+describe('TerminalPane (viewer font size)', () => {
+  it('never reports a terminal size or sends anything, also when the host resizes', async () => {
+    const onFit = vi.fn();
+    const onInput = vi.fn();
+    let controller: TerminalController | undefined;
+    render(<TerminalPane interactive={false} onReady={(c) => (controller = c)} onFit={onFit} onInput={onInput} />);
+    await act(flush);
+    await act(async () => controller!.resize(160, 40));
+    await act(async () => controller!.write('after resize\r\n', 1));
+    expect(onFit).not.toHaveBeenCalled();
+    expect(onInput).not.toHaveBeenCalled();
+  });
+
+  it('uses a manual font size the viewer chose', async () => {
+    render(<TerminalPane interactive={false} onReady={() => {}} font={{ kind: 'manual', size: 16 }} />);
+    await act(flush);
+    expect(screen.getByLabelText('Terminal font size in pixels')).toHaveTextContent('16');
+    expect(screen.getByRole('button', { name: 'Fit' })).toHaveAttribute('aria-pressed', 'false');
+  });
+
+  it('switches between fitting and a manual size', async () => {
+    const onFontChange = vi.fn();
+    const { rerender } = render(<TerminalPane interactive={false} onReady={() => {}} font={{ kind: 'fit' }} onFontChange={onFontChange} />);
+    await act(flush);
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('button', { name: 'Larger terminal font' }));
+    expect(onFontChange).toHaveBeenLastCalledWith({ kind: 'manual', size: 14 });
+
+    rerender(<TerminalPane interactive={false} onReady={() => {}} font={{ kind: 'manual', size: 14 }} onFontChange={onFontChange} />);
+    expect(screen.getByLabelText('Terminal font size in pixels')).toHaveTextContent('14');
+    await user.click(screen.getByRole('button', { name: 'Smaller terminal font' }));
+    expect(onFontChange).toHaveBeenLastCalledWith({ kind: 'manual', size: 13 });
+    await user.click(screen.getByRole('button', { name: 'Fit' }));
+    expect(onFontChange).toHaveBeenLastCalledWith({ kind: 'fit' });
+  });
+
+  it('offers no font controls to the host, whose terminal fits its rows and columns', async () => {
+    render(<TerminalPane interactive onReady={() => {}} />);
+    await act(flush);
+    expect(screen.queryByRole('group', { name: 'Terminal font size' })).toBeNull();
+  });
+});

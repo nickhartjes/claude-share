@@ -16,7 +16,10 @@
   --removed-text: #8c1d18;
   --terminal-bg: #1d1d1b;
   --radius: 6px;
-  --mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  /* Replies in Source Serif 4 (bundled); the interface and code in the system stacks. */
+  --font-serif: 'Source Serif 4 Variable', ui-serif, Georgia, Cambria, 'Times New Roman', Times, serif;
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', 'Noto Sans', Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
   color-scheme: light dark;
 }
 
@@ -44,6 +47,11 @@
   box-sizing: border-box;
 }
 
+/* Panes set their own display; hidden must still win. */
+[hidden] {
+  display: none !important;
+}
+
 html,
 body,
 #root {
@@ -54,7 +62,7 @@ body,
 body {
   background: var(--bg);
   color: var(--text);
-  font: 14px/1.45 system-ui, -apple-system, 'Segoe UI', sans-serif;
+  font: 0.875rem/1.45 var(--font-sans);
 }
 
 button {
@@ -98,7 +106,7 @@ input {
   color: var(--danger);
 }
 .mono {
-  font-family: var(--mono);
+  font-family: var(--font-mono);
 }
 
 /* Start and recordings screens */
@@ -121,7 +129,7 @@ input {
 }
 .card h2 {
   margin: 0;
-  font-size: 16px;
+  font-size: 1rem;
 }
 .row {
   display: flex;
@@ -135,6 +143,8 @@ input {
   height: 100%;
   display: grid;
   grid-template-rows: auto 1fr auto;
+  /* Never wider than the window: the panels shrink instead (an auto column would grow to fit them). */
+  grid-template-columns: minmax(0, 1fr);
 }
 .session-header {
   display: flex;
@@ -145,12 +155,126 @@ input {
   background: var(--surface);
   flex-wrap: wrap;
 }
-.session-body {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(260px, 340px) minmax(260px, 380px);
-  min-height: 0;
+.mode-toggle,
+.zoom-controls,
+.font-controls {
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
 }
-.pane {
+.mode-toggle button,
+.zoom-controls button,
+.font-controls button {
+  border: none;
+  border-radius: 0;
+}
+.mode-toggle button[aria-pressed='true'],
+.font-controls button[aria-pressed='true'] {
+  background: var(--accent);
+  color: var(--accent-text);
+}
+.session-body {
+  display: flex;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+.session-panels {
+  flex: 1;
+}
+/* Panels put their class on an inner element: make it the column the pane fills. */
+.main-panel,
+.side-panel,
+.side-pane,
+.terminal-slot,
+.terminal-portal {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+}
+.terminal-portal > .pane,
+.side-pane > .pane,
+.side-pane > :last-child {
+  flex: 1;
+}
+.side-pane {
+  position: relative;
+  border-left: 1px solid var(--border);
+}
+.side-pane .pane-header,
+.side-pane .conversation-toolbar {
+  padding-right: 34px;
+}
+.pane-collapse {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  z-index: 1;
+  padding: 2px 6px;
+  line-height: 1;
+}
+.pane-strip {
+  height: 100%;
+  width: 100%;
+  border: none;
+  border-left: 1px solid var(--border);
+  border-radius: 0;
+  padding: 8px 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  background: var(--surface);
+}
+.pane-strip span {
+  writing-mode: vertical-rl;
+  font-weight: 600;
+}
+.narrow-layout {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+}
+.narrow-layout > .main-panel {
+  flex: 1;
+}
+.pane-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 4px 8px;
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+}
+.pane-tabs button[aria-selected='true'] {
+  background: var(--accent);
+  color: var(--accent-text);
+}
+.narrow-pane {
+  height: 40%;
+  border-left: none;
+  border-top: 1px solid var(--border);
+}
+.terminal-toolbar button,
+.terminal-toolbar span,
+.conversation-toolbar button {
+  white-space: nowrap;
+}
+.pane-separator {
+  width: 4px;
+  background: transparent;
+  transition: background 0.15s;
+}
+.pane-separator:hover,
+.pane-separator[data-separator='active'],
+.pane-separator:focus-visible {
+  background: var(--accent);
+  outline: none;
+}.pane {
   display: flex;
   flex-direction: column;
   min-height: 0;
@@ -227,13 +351,13 @@ input {
   display: flex;
   gap: 6px;
   align-items: baseline;
-  font-family: var(--mono);
-  font-size: 12px;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
   margin: 3px 0;
   overflow-wrap: anywhere;
 }
 .badge {
-  font-size: 11px;
+  font-size: 0.6875rem;
   border-radius: 4px;
   padding: 0 5px;
   border: 1px solid currentColor;
@@ -273,8 +397,8 @@ input {
   border: none;
   border-radius: 0;
   border-bottom: 1px solid var(--border);
-  font-family: var(--mono);
-  font-size: 12px;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
   display: flex;
   justify-content: space-between;
   gap: 8px;
@@ -283,8 +407,8 @@ input {
   background: var(--surface-2);
 }
 .diff {
-  font-family: var(--mono);
-  font-size: 12px;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
   margin: 0 0 12px;
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -333,7 +457,7 @@ input {
   padding: 4px 12px;
   border-top: 1px solid var(--border);
   background: var(--surface);
-  font-size: 12px;
+  font-size: 0.75rem;
 }
 .dot {
   display: inline-block;
@@ -353,8 +477,8 @@ input {
   background: var(--danger);
 }
 .invite-code {
-  font-family: var(--mono);
-  font-size: 16px;
+  font-family: var(--font-mono);
+  font-size: 1rem;
   letter-spacing: 1px;
 }
 
@@ -362,4 +486,146 @@ input {
 .pane .pane {
   flex: 1;
   border-right: none;
+}
+
+/* Business mode: a reading column in the style of a chat, replies in the serif. */
+.conversation-toolbar {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  flex-wrap: wrap;
+}
+.conversation-toolbar input {
+  width: 160px;
+}
+.conversation-toolbar select {
+  max-width: 220px;
+}
+.exchange.search-match {
+  outline: 2px solid color-mix(in srgb, var(--accent) 35%, transparent);
+  outline-offset: 6px;
+  border-radius: 4px;
+}
+.exchange.search-current {
+  outline: 2px solid var(--accent);
+  outline-offset: 6px;
+  border-radius: 4px;
+}
+.conversation .pane-body {
+  padding: 1.5rem 1rem 3rem;
+}
+.exchange {
+  max-width: 46rem;
+  margin: 0 auto 2.25rem;
+}
+.prompt-message {
+  margin-left: auto;
+  width: fit-content;
+  max-width: 85%;
+  padding: 0.625rem 0.875rem;
+  border-radius: 1rem;
+  background: var(--surface-2);
+}
+.prompt-message p {
+  margin: 0;
+  white-space: pre-wrap;
+}
+.message-meta {
+  font-size: 0.75rem;
+  color: var(--muted);
+  margin-bottom: 0.25rem;
+}
+.activity {
+  list-style: none;
+  margin: 1rem 0 0.75rem;
+  padding: 0;
+  font-size: 0.8125rem;
+  color: var(--muted);
+}
+.activity-line {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.125rem 0;
+}
+.activity-line.done svg {
+  color: var(--ok);
+}
+.activity-line.failed {
+  color: var(--danger);
+}
+.reply {
+  font-family: var(--font-serif);
+  font-size: 1.0625rem;
+  line-height: 1.65;
+}
+.reply > :first-child {
+  margin-top: 0;
+}
+.reply h1,
+.reply h2,
+.reply h3 {
+  font-weight: 600;
+  line-height: 1.3;
+  margin: 1.25em 0 0.5em;
+}
+.reply h1 {
+  font-size: 1.375rem;
+}
+.reply h2 {
+  font-size: 1.2rem;
+}
+.reply h3 {
+  font-size: 1.0625rem;
+}
+.reply ul,
+.reply ol {
+  padding-left: 1.4em;
+}
+.reply code {
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+  background: var(--surface-2);
+  border-radius: 4px;
+  padding: 0.1em 0.3em;
+}
+.reply pre {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.75rem 1rem;
+  overflow-x: auto;
+  line-height: 1.45;
+}
+.reply pre code {
+  background: none;
+  padding: 0;
+}
+.reply table {
+  border-collapse: collapse;
+  font-family: var(--font-sans);
+  font-size: 0.875rem;
+}
+.reply th,
+.reply td {
+  border: 1px solid var(--border);
+  padding: 0.25rem 0.5rem;
+}
+.reply a {
+  color: var(--accent);
+}
+.working {
+  color: var(--muted);
+  font-style: italic;
+}
+.spin {
+  animation: spin 1s linear infinite;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }

@@ -21,13 +21,13 @@ export class FakeTerminal implements TerminalController {
 
 /** Stand-in for TerminalPane: hands out a FakeTerminal and, for the host, reports a fitted size. */
 export function fakeTerminalPane(terminal: FakeTerminal, fitted = { cols: 120, rows: 40 }) {
-  return function FakeTerminalPane({ onReady, onFit, interactive }: TerminalPaneProps) {
+  return function FakeTerminalPane({ onReady, onFit, interactive, font }: TerminalPaneProps) {
     useEffect(() => {
       onReady(terminal);
       if (interactive) onFit?.(fitted.cols, fitted.rows);
       // Once per mount, like the real pane.
     }, []);
-    return <section aria-label="Terminal" data-interactive={String(interactive)} />;
+    return <section aria-label="Terminal" data-interactive={String(interactive)} data-font={JSON.stringify(font ?? null)} />;
   };
 }
 

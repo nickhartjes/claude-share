@@ -2,7 +2,32 @@
 // exposes an implementation as `window.claudeShare`. Types only: shared by main, preload and renderer.
 import type { ClaudeStatus, Recording, RecordingSummary, SharingState, TimelineEvent } from '@claude-share/protocol';
 
-export interface AppSettings {
+/** Nerd mode shows the terminal, tool calls and diffs; business mode a plain conversation. */
+export type InterfaceMode = 'nerd' | 'business';
+
+/** A viewer's terminal font: fitted to the pane, or a size the viewer chose. */
+export type TerminalFont = { kind: 'fit' } | { kind: 'manual'; size: number };
+
+/** Pane sizes per mode, as percentages of the session width, keyed by pane id. */
+export type PaneLayouts = { [M in InterfaceMode]?: Record<string, number> | undefined };
+
+/** How the user likes the session screen; per user, applied to every session. */
+export interface DisplaySettings {
+  mode: InterfaceMode;
+  /** Electron zoom level: 0 is the default size, each step is 20% larger or smaller. */
+  zoomLevel: number;
+  panes: PaneLayouts;
+  terminalFont: TerminalFont;
+}
+
+export const DEFAULT_DISPLAY_SETTINGS: DisplaySettings = {
+  mode: 'nerd',
+  zoomLevel: 0,
+  panes: {},
+  terminalFont: { kind: 'fit' },
+};
+
+export interface AppSettings extends DisplaySettings {
   /** Display name shown to other participants; required before hosting or joining. */
   username: string | undefined;
   /** Signalling service URL, from the build configuration or CLAUDE_SHARE_SIGNALLING_URL. */
@@ -57,6 +82,10 @@ export interface RecordingsApi {
 export interface Bridge {
   getSettings(): Promise<AppSettings>;
   setUsername(username: string): Promise<void>;
+  /** Changes display settings; resolves with all settings. Rejects an invalid update. */
+  updateSettings(update: Partial<DisplaySettings>): Promise<AppSettings>;
+  /** Called with all settings whenever they change, from this window or another. */
+  onSettingsChanged(listener: (settings: AppSettings) => void): () => void;
   /** Asks the host to pick a working directory. Undefined if cancelled. */
   chooseDirectory(): Promise<string | undefined>;
   host: HostApi;
@@ -66,6 +95,8 @@ export interface Bridge {
 export const CHANNELS = {
   getSettings: 'settings:get',
   setUsername: 'settings:set-username',
+  updateSettings: 'settings:update',
+  settingsChanged: 'settings:changed',
   chooseDirectory: 'dialog:choose-directory',
   hostStart: 'host:start',
   hostResume: 'host:resume',

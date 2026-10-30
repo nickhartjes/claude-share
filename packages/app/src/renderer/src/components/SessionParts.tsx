@@ -1,10 +1,5 @@
 import type { ClaudeStatus, Participant, SharingState } from '@claude-share/protocol';
-import { useRef, useState, type ReactNode } from 'react';
-import type { TerminalController } from './TerminalPane';
-import { TerminalPane } from './TerminalPane';
-import { FilesPane } from './FilesPane';
-import { TimelinePane } from './TimelinePane';
-import type { TimelineState } from '../model/timeline';
+import { useState } from 'react';
 
 const CLAUDE_LABEL: Record<ClaudeStatus, string> = {
   starting: 'Claude is starting',
@@ -162,48 +157,5 @@ function ViewerLimit({ limit, onSetLimit }: { limit: number; onSetLimit(limit: n
         style={{ width: 64 }}
       />
     </label>
-  );
-}
-
-export interface SessionViewProps {
-  header: ReactNode;
-  footer: ReactNode;
-  /** Extra content above the timeline, such as the participant list. */
-  aside?: ReactNode;
-  interactive: boolean;
-  timeline: TimelineState;
-  onTerminalReady(controller: TerminalController): void;
-  onInput?(data: string): void;
-  onFit?(cols: number, rows: number): void;
-}
-
-/** The three-pane session layout shared by host, viewers and replays. */
-export function SessionView({ header, footer, aside, interactive, timeline, onTerminalReady, onInput, onFit }: SessionViewProps) {
-  const controller = useRef<TerminalController | undefined>(undefined);
-  return (
-    <div className="session">
-      <header className="session-header">{header}</header>
-      <div className="session-body">
-        <TerminalPane
-          interactive={interactive}
-          onReady={(c) => {
-            controller.current = c;
-            onTerminalReady(c);
-          }}
-          {...(onInput ? { onInput } : {})}
-          {...(onFit ? { onFit } : {})}
-        />
-        <div className="pane" style={{ display: 'flex', flexDirection: 'column' }}>
-          {aside}
-          <TimelinePane
-            timeline={timeline}
-            onJumpToPrompt={(prompt) => controller.current?.jumpTo(prompt.outputSeq, prompt.text)}
-            onJumpToTool={(tool) => controller.current?.jumpTo(tool.outputSeq)}
-          />
-        </div>
-        <FilesPane files={timeline.files} />
-      </div>
-      {footer}
-    </div>
   );
 }

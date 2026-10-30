@@ -161,6 +161,13 @@ export function describeTool(tool: ToolEntry): string {
 }
 
 /** Case-insensitive search over prompts, messages, responses and tool descriptions. */
+/** Business mode's search: prompts and Claude's replies only, never tool details. */
+export function searchConversation(state: TimelineState, query: string): PromptEntry[] {
+  const needle = query.trim().toLowerCase();
+  if (!needle) return [];
+  return state.prompts.filter((prompt) => [prompt.text, promptAnswer(prompt) ?? ''].some((text) => text.toLowerCase().includes(needle)));
+}
+
 export function searchTimeline(state: TimelineState, query: string): PromptEntry[] {
   const needle = query.trim().toLowerCase();
   if (!needle) return [];

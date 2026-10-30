@@ -1,7 +1,8 @@
 import type { ClaudeStatus, Participant } from '@claude-share/protocol';
 import { ViewerConnection, type ViewerState } from '@claude-share/protocol/viewer';
 import { useEffect, useRef, useState } from 'react';
-import { ParticipantsList, SessionView, StatusBar, type ConnectionLabel } from '../components/SessionParts';
+import { ParticipantsList, StatusBar, type ConnectionLabel } from '../components/SessionParts';
+import { SessionView } from '../components/SessionView';
 import type { TerminalController } from '../components/TerminalPane';
 import { applyEvent, emptyTimeline, type TimelineState } from '../model/timeline';
 
@@ -77,6 +78,7 @@ export function ViewerScreen({ signallingUrl, code, username, onFailed, onLeave,
 
   return (
     <SessionView
+      sender={participants.list.find((p) => p.role === 'host')?.label}
       interactive={false}
       timeline={timeline}
       onTerminalReady={start}

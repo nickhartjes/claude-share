@@ -1,7 +1,8 @@
 import type { Recording, RecordingSummary } from '@claude-share/protocol';
 import { useEffect, useState } from 'react';
 import type { RecordingsApi } from '../../../shared/bridge';
-import { SessionView, StatusBar } from '../components/SessionParts';
+import { StatusBar } from '../components/SessionParts';
+import { SessionView } from '../components/SessionView';
 import { buildTimeline } from '../model/timeline';
 
 const formatDuration = (ms: number) => {

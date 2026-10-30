@@ -1,12 +1,18 @@
 // Exposes the bridge to the window. Runs sandboxed: only the IPC calls below cross over.
 import { contextBridge, ipcRenderer } from 'electron';
-import { CHANNELS, type Bridge, type HostEvent } from '../shared/bridge';
+import { CHANNELS, type AppSettings, type Bridge, type HostEvent } from '../shared/bridge';
 
 const send = (message: { type: string } & Record<string, unknown>) => ipcRenderer.send(CHANNELS.hostSend, message);
 
 const bridge: Bridge = {
   getSettings: () => ipcRenderer.invoke(CHANNELS.getSettings),
   setUsername: (username) => ipcRenderer.invoke(CHANNELS.setUsername, username),
+  updateSettings: (update) => ipcRenderer.invoke(CHANNELS.updateSettings, update),
+  onSettingsChanged: (listener) => {
+    const handler = (_: unknown, settings: AppSettings) => listener(settings);
+    ipcRenderer.on(CHANNELS.settingsChanged, handler);
+    return () => ipcRenderer.off(CHANNELS.settingsChanged, handler);
+  },
   chooseDirectory: () => ipcRenderer.invoke(CHANNELS.chooseDirectory),
   host: {
     start: (cwd, size) => ipcRenderer.invoke(CHANNELS.hostStart, cwd, size),

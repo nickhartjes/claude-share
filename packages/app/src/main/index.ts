@@ -1,4 +1,5 @@
 import { join } from 'node:path';
+import { pathToFileURL } from 'node:url';
 import {
   deleteRecording,
   exportRecording,
@@ -8,10 +9,13 @@ import {
   RecordingFormatError,
   type Recording,
 } from '@claude-share/daemon';
-import { app, BrowserWindow, dialog, ipcMain } from 'electron';
-import { CHANNELS, type HostEvent, type OpenRecordingResult } from '../shared/bridge';
+import { app, BrowserWindow, dialog, ipcMain, Menu, shell } from 'electron';
+import { CHANNELS, type AppSettings, type HostEvent, type OpenRecordingResult } from '../shared/bridge';
 import { HostController } from './host-controller';
+import { handleWindowOpen, isAppPage } from './navigation';
 import { Settings } from './settings';
+import { stepZoom, type ZoomDirection } from '../shared/zoom';
+import { menuTemplate } from './zoom';
 
 // Lets a second development instance (`just local-dev`) keep its own settings and sessions.
 if (process.env['CLAUDE_SHARE_USER_DATA']) app.setPath('userData', process.env['CLAUDE_SHARE_USER_DATA']);
@@ -43,9 +47,24 @@ async function openRecording(read: () => Promise<Recording>): Promise<OpenRecord
   }
 }
 
+/** Stores a settings change, applies the zoom level and tells every window. */
+async function updateSettings(update: unknown): Promise<AppSettings> {
+  const updated = await settings.update(update);
+  for (const each of BrowserWindow.getAllWindows()) {
+    each.webContents.setZoomLevel(updated.zoomLevel);
+    each.webContents.send(CHANNELS.settingsChanged, updated);
+  }
+  return updated;
+}
+
+async function zoom(direction: ZoomDirection): Promise<void> {
+  await updateSettings({ zoomLevel: stepZoom((await settings.get()).zoomLevel, direction) });
+}
+
 function registerIpc(): void {
   ipcMain.handle(CHANNELS.getSettings, () => settings.get());
   ipcMain.handle(CHANNELS.setUsername, (_, username: string) => settings.setUsername(username));
+  ipcMain.handle(CHANNELS.updateSettings, (_, update: unknown) => updateSettings(update));
   ipcMain.handle(CHANNELS.chooseDirectory, async () => {
     const result = await dialog.showOpenDialog(window!, { title: 'Choose the folder to run Claude Code in', properties: ['openDirectory'] });
     return result.canceled ? undefined : result.filePaths[0];
@@ -99,14 +118,24 @@ function createWindow(): void {
     host.detach();
     window = undefined;
   });
+  // Links in session content open in the system browser, never in the app (navigation.ts).
+  window.webContents.setWindowOpenHandler(({ url }) => handleWindowOpen(url, (external) => void shell.openExternal(external)));
   // electron-vite sets ELECTRON_RENDERER_URL to the dev server in development.
   const devServerUrl = process.env['ELECTRON_RENDERER_URL'];
-  if (devServerUrl) void window.loadURL(devServerUrl);
-  else void window.loadFile(join(import.meta.dirname, '../renderer/index.html'));
+  const appUrl = devServerUrl ?? pathToFileURL(join(import.meta.dirname, '../renderer/index.html')).href;
+  window.webContents.on('will-navigate', (event, url) => {
+    if (!isAppPage(url, appUrl)) event.preventDefault();
+  });
+  // The saved zoom level, and Ctrl+scroll zooming through the same stored setting as the menu.
+  const contents = window.webContents;
+  contents.on('did-finish-load', () => void settings.get().then((stored) => contents.setZoomLevel(stored.zoomLevel)));
+  contents.on('zoom-changed', (_, direction) => void zoom(direction));
+  void window.loadURL(appUrl);
 }
 
 void app.whenReady().then(() => {
   registerIpc();
+  Menu.setApplicationMenu(Menu.buildFromTemplate(menuTemplate(process.platform === 'darwin', (direction) => void zoom(direction))));
   createWindow();
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
