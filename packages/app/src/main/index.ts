@@ -13,6 +13,8 @@ import { CHANNELS, type HostEvent, type OpenRecordingResult } from '../shared/br
 import { HostController } from './host-controller';
 import { Settings } from './settings';
 
+// Lets a second development instance (`just local-dev`) keep its own settings and sessions.
+if (process.env['CLAUDE_SHARE_USER_DATA']) app.setPath('userData', process.env['CLAUDE_SHARE_USER_DATA']);
 const dataDir = app.getPath('userData');
 const sessionsDir = join(dataDir, 'sessions');
 const settings = new Settings(join(dataDir, 'settings.json'));

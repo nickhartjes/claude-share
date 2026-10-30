@@ -91,6 +91,27 @@ local-test: local-up
 local-down:
     scripts/local-kubectl.sh delete namespace claude-share-local --ignore-not-found
 
+# The viewer keeps its own settings in .local-dev/viewer. Both apps run on this Mac, so they connect
+# directly, not through TURN. Closing the host window stops everything.
+# Deploy the local cluster and open a host and a viewer development app against it
+local-dev: local-up
+    #!/usr/bin/env bash
+    set -euo pipefail
+    trap 'kill $(jobs -p) 2>/dev/null || true' EXIT
+    scripts/local-kubectl.sh -n claude-share-local port-forward svc/claude-share-signalling 8080:8080 >/dev/null &
+    until nc -z localhost 8080 2>/dev/null; do sleep 0.5; done
+    export CLAUDE_SHARE_SIGNALLING_URL=ws://localhost:8080/signal
+    # Electron crashes (SIGTRAP) if its userData directory does not exist yet.
+    mkdir -p .local-dev/viewer
+    log=.local-dev/host.log
+    (cd packages/app && pnpm exec electron-vite dev) 2>&1 | tee "$log" &
+    host=$!
+    # The viewer is a second Electron process on the host's build, using the same dev server.
+    until url=$(grep -om1 'http://localhost:[0-9]*' "$log"); do sleep 0.5; done
+    until grep -q 'starting electron app' "$log"; do sleep 0.5; done
+    (cd packages/app && ELECTRON_RENDERER_URL="$url" CLAUDE_SHARE_USER_DATA="$PWD/../../.local-dev/viewer" pnpm exec electron .) &
+    wait "$host"
+
 # Package the desktop app for this computer's platform, unsigned (installers in packages/app/release)
 package:
     pnpm --filter @claude-share/app build
