@@ -1,5 +1,8 @@
 packages:
   - packages/*
+# Skip versions published less than a day ago (in minutes), so a compromised release has time to be
+# pulled. Set here so every machine resolves the same way CI and the Docker builds do.
+minimumReleaseAge: 1440
 allowBuilds:
   electron-winstaller: false
   esbuild: true

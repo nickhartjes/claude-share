@@ -29,6 +29,26 @@ test:
 # Lint, type-check and test
 check: lint typecheck test
 
+# Update dependencies within their ranges, skipping versions published less than `days` ago, then
+# install from the lockfile as CI does and check; `just outdated` shows the major updates left.
+# `days` can be raised but not lowered below minimumReleaseAge in pnpm-workspace.yaml, which CI enforces.
+update days="1":
+    #!/usr/bin/env sh
+    set -eu
+    floor=$(pnpm config get minimumReleaseAge)
+    age=$(( {{days}} * 1440 ))
+    if [ "$age" -lt "$floor" ]; then
+      echo "days={{days}} is below minimumReleaseAge ($floor minutes); CI would reject the lockfile" >&2
+      exit 1
+    fi
+    pnpm --config.minimumReleaseAge="$age" update -r
+    pnpm install --frozen-lockfile
+    just check
+
+# List dependencies with newer versions, including major ones that `just update` leaves alone
+outdated:
+    pnpm outdated -r
+
 # Lint, type-check and test inside the Linux container (needs Docker, an ECR login and CodeArtifact access, see docker/README.md)
 linux-check:
     CLAUDE_SHARE_NPMRC="$(scripts/codeartifact-npmrc.sh)" docker build --secret id=npmrc,env=CLAUDE_SHARE_NPMRC -f docker/linux.Dockerfile --target check -t claude-share-linux-check .
