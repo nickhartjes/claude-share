@@ -7,3 +7,5 @@ coverage/
 .DS_Store
 deploy/k8s/*/turn-secret.env
 .local-dev/
+result
+result-*

@@ -10,6 +10,9 @@
 #   APPLE_API_KEY (base64 .p8), APPLE_API_KEY_ID, APPLE_API_ISSUER   (notarization)
 #   WIN_CERTIFICATE (base64 .pfx) and WIN_CERTIFICATE_PASSWORD
 #   SPECDECK_SIGNALLING_URL   (baked into the app as MAIN_VITE_SIGNALLING_URL)
+# After publishing, the `nix` job commits the new version and hash to nix/release.json on main,
+# which the flake (flake.nix) packages.
+#
 #   HOMEBREW_TAP_TOKEN   token that can push to nickhartjes/homebrew-tap, where the `homebrew` job
 #                        writes Casks/specdeck.rb (skipped while it is missing)
 name: Release
@@ -184,3 +187,32 @@ jobs:
           fi
           git commit -m "specdeck ${TAG#v}"
           git push
+
+  nix:
+    name: Update Nix package
+    needs: publish
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: main
+      - name: Update nix/release.json
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          gh release download "$TAG" -p SpecDeck-x86_64.AppImage -D appimage
+          hash="sha256-$(openssl dgst -sha256 -binary appimage/SpecDeck-x86_64.AppImage | base64 -w0)"
+          printf '{\n  "version": "%s",\n  "hash": "%s"\n}\n' "${TAG#v}" "$hash" > nix/release.json
+          cat nix/release.json
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add nix/release.json
+          if git diff --cached --quiet; then
+            echo "No changes"
+            exit 0
+          fi
+          git commit -m "Update the Nix package to ${TAG#v}"
+          git push origin HEAD:main

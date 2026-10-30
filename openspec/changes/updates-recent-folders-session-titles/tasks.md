@@ -19,7 +19,7 @@
 
 - [x] 3.1 Make `nickhartjes/specdeck` public, so installed apps can read its releases without a token; verify with `gh repo view` that its visibility is public
 - [x] 3.2 Add `publish` (GitHub provider, this repo, draft releases) and the mac `zip` target to `electron-builder.yml`, and make `release.yml` check the tag against the app version, create a draft, upload every platform to it with `GITHUB_TOKEN` (unsigned while the signing secrets are missing), then publish it (as a prerelease for suffixed tags); verify with actionlint and that a local mac zip build writes `app-update.yml` pointing at this repo
-- [ ] 3.3 Push a test tag such as `v0.1.1-rc.1` (as a prerelease) and verify that one release in this repo holds the dmg, zip, exe, AppImage and deb plus `latest.yml`, `latest-mac.yml` and `latest-linux.yml`; then delete the test release
+- [x] 3.3 Push the tag `v0.2.0-rc.1` (published as a prerelease) and verify that its release in this repo holds the dmg, zip, exe, AppImage and deb plus `latest.yml`, `latest-mac.yml` and `latest-linux.yml`; the release is kept as the first test version
 - [x] 3.4 Update the **CI and releases** section of `README.md` for publishing to this repo's releases; verify the listed secrets match `release.yml`
 
 ## 4. Updater

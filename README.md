@@ -1,5 +1,13 @@
 # SpecDeck
 
+[![CI](https://github.com/nickhartjes/specdeck/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/nickhartjes/specdeck/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/nickhartjes/specdeck?include_prereleases&sort=semver)](https://github.com/nickhartjes/specdeck/releases)
+[![Downloads](https://img.shields.io/github/downloads/nickhartjes/specdeck/total)](https://github.com/nickhartjes/specdeck/releases)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+[![Platforms](https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-lightgrey)](#install)
+[![Homebrew](https://img.shields.io/badge/homebrew-nickhartjes%2Ftap-FBB040?logo=homebrew&logoColor=white)](#macos-homebrew)
+[![Nix flake](https://img.shields.io/badge/nix-flake-5277C3?logo=nixos&logoColor=white)](#nixos-and-nix)
+
 SpecDeck lets one person (the **host**) run Claude Code on their computer while teammates (the **viewers**) follow along from anywhere. Viewers see the terminal, every prompt and answer, the tools Claude uses and the diffs of the files it changes. They join with an invite code and are read-only: only the host types into Claude Code, on the host's own Claude login.
 
 How to use the app: [docs/user-guide.md](docs/user-guide.md).
@@ -56,24 +64,35 @@ sudo apt install ./specdeck_amd64.deb
 
 The app is then in your applications menu, or run `specdeck`. It tells you when there is a new version; install the new `.deb` the same way.
 
-### NixOS
+### NixOS and Nix
 
-There is no Nix package yet. Run the AppImage instead. Enable AppImage support in your configuration:
-
-```nix
-programs.appimage = {
-  enable = true;
-  binfmt = true;
-};
-```
-
-After `nixos-rebuild switch`, make the AppImage executable and run it as on any other Linux. The app updates itself.
-
-To try it without changing your configuration:
+This repository is a flake with a package for `x86_64-linux`, built from the released AppImage. To try it:
 
 ```sh
-nix-shell -p appimage-run --run "appimage-run ./SpecDeck-x86_64.AppImage"
+nix run github:nickhartjes/specdeck
 ```
+
+To install it on NixOS, add the flake to your configuration's inputs and the package to your system:
+
+```nix
+# flake.nix
+{
+  inputs.specdeck.url = "github:nickhartjes/specdeck";
+
+  outputs = { nixpkgs, specdeck, ... }: {
+    nixosConfigurations.my-host = nixpkgs.lib.nixosSystem {
+      system = "x86_64-linux";
+      modules = [
+        ({ pkgs, ... }: {
+          environment.systemPackages = [ specdeck.packages.${pkgs.system}.default ];
+        })
+      ];
+    };
+  };
+}
+```
+
+Instead of the package, you can use the overlay `specdeck.overlays.default`, which adds `pkgs.specdeck`. The Nix package cannot update itself. The app tells you when there is a new version; run `nix flake update specdeck` and rebuild.
 
 ## How it works
 
@@ -130,6 +149,8 @@ Run `just` to list all recipes. Others worth knowing:
   - the signalling URL;
   - `HOMEBREW_TAP_TOKEN`, a token that can push to [`nickhartjes/homebrew-tap`](https://github.com/nickhartjes/homebrew-tap). With it, each release updates the `specdeck` cask there.
 
+  After each release, the workflow also commits the new version and AppImage hash to [`nix/release.json`](nix/release.json), which the [flake](flake.nix) packages.
+
 ## Status
 
 All features in the proposal are built, and CI is green on macOS, Windows and Linux. Still open (see [`tasks.md`](openspec/changes/shared-claude-session/tasks.md)):
@@ -137,3 +158,7 @@ All features in the proposal are built, and CI is green on macOS, Windows and Li
 - Confirm with the Kubernetes operators how the cluster exposes UDP and coturn's relay ports, then deploy signalling and coturn to a test namespace.
 - Code signing and macOS notarization.
 - Testing across platforms and networks: hosts and viewers on different operating systems, 20 viewers with one relayed through TURN, and recovery after a host window restart or a dropped viewer connection.
+
+## License
+
+[MIT](LICENSE)
